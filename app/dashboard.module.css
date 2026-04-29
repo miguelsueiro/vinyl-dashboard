@@ -382,6 +382,26 @@
   
   .galleryItem { width: 260px !important; height: 260px !important; }
   .revealTitle { font-size: 24px !important; }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .card {
+    border-radius: 16px !important;
+  }
+  .cardInfo {
+    padding: 12px !important;
+  }
+  .recordArtist {
+    font-size: 13px !important;
+  }
+  .recordTitle {
+    font-size: 11px !important;
+  }
+  .recordPrice {
+    font-size: 16px !important;
+  }
 }
 
 /* RANDOMIZER STYLES RESTORED */
