@@ -39,6 +39,10 @@ body {
   padding: 40px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   margin-bottom: 40px;
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  z-index: 1000;
 }
 
 .globalTitle {
@@ -51,11 +55,19 @@ body {
 
 @media (max-width: 800px) {
   .globalHeader {
-    padding: 20px 0;
+    padding: 15px 0;
     margin-bottom: 20px;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
   
   .globalTitle {
     font-size: 18px;
+  }
+
+  a, button, [role="button"] {
+    text-decoration: none !important;
   }
 }
