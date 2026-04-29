@@ -104,7 +104,7 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
           />
           <Tooltip 
             labelFormatter={(label, entries) => entries[0]?.payload?.fullDate}
-            formatter={(value: number) => [currencyFormatter.format(value), "Valor Total"]}
+            formatter={(value: any) => [currencyFormatter.format(value), "Valor Total"]}
             contentStyle={{ borderRadius: 20, background: "rgba(10,10,10,0.95)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)' }}
           />
           <Area 

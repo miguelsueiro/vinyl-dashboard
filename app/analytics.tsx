@@ -90,7 +90,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatEuro(value)} />
+              <Tooltip formatter={(value: any) => formatEuro(Number(value))} />
               <Legend verticalAlign="bottom" height={36}/>
             </PieChart>
           </ResponsiveContainer>
