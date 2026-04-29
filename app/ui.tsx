@@ -128,14 +128,22 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
         <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
           <option value="all">Formato</option><option value="Vinilo">Vinilo</option><option value="CD">CD</option>
         </select>
-        <input list="genres-list" className={styles.inputDatalist} placeholder="Género..." value={genre} onFocus={() => setGenre("")} onChange={(e) => setGenre(e.target.value)} />
-        <datalist id="genres-list">{genres.map((g: any) => <option key={g} value={g} />)}</datalist>
-        <input list="styles-list" className={styles.inputDatalist} placeholder="Estilo..." value={styleFilter} onFocus={() => setStyleFilter("")} onChange={(e) => setStyleFilter(e.target.value)} />
-        <datalist id="styles-list">{stylesList.map((s: any) => <option key={s} value={s} />)}</datalist>
-        <input list="years-list" className={styles.inputDatalist} placeholder="Año..." value={year} onFocus={() => setYear("")} onChange={(e) => setYear(e.target.value)} />
-        <datalist id="years-list">{years.map((y: any) => <option key={y} value={y} />)}</datalist>
-        <input list="labels-list" className={styles.inputDatalist} placeholder="Sello..." value={labelFilter} onFocus={() => setLabelFilter("")} onChange={(e) => setLabelFilter(e.target.value)} />
-        <datalist id="labels-list">{labelsList.map((l: any) => <option key={l} value={l} />)}</datalist>
+        <select value={genre} onChange={(e) => setGenre(e.target.value)} className={styles.select}>
+          <option value="">Género...</option>
+          {genres.map((g: any) => <option key={g} value={g}>{g}</option>)}
+        </select>
+        <select value={styleFilter} onChange={(e) => setStyleFilter(e.target.value)} className={styles.select}>
+          <option value="">Estilo...</option>
+          {stylesList.map((s: any) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={year} onChange={(e) => setYear(e.target.value)} className={styles.select}>
+          <option value="">Año...</option>
+          {years.map((y: any) => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)} className={styles.select}>
+          <option value="">Sello...</option>
+          {labelsList.map((l: any) => <option key={l} value={l}>{l}</option>)}
+        </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={styles.select}>
           <option value="priceDesc">Mayor precio</option><option value="priceAsc">Menor precio</option><option value="artistAsc">A-Z</option><option value="yearDesc">Más reciente</option>
         </select>
