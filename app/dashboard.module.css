@@ -372,8 +372,16 @@
     background: rgba(0,0,0,0.98); backdrop-filter: blur(20px);
     flex-direction: column; align-items: center; justify-content: center; z-index: 2000; 
     gap: 24px;
+    width: 100vw;
+    height: 100vh;
   }
   .tabsWrapper.menuOpen .tabBtn { font-size: 24px; }
+
+  .chartsGrid { grid-template-columns: 1fr !important; }
+  .insightsRanking { grid-template-columns: 1fr !important; }
+  
+  .galleryItem { width: 260px !important; height: 260px !important; }
+  .revealTitle { font-size: 24px !important; }
 }
 
 /* RANDOMIZER STYLES RESTORED */
