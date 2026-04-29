@@ -67,3 +67,15 @@ export const IconEdit = (props: any) => (
     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
   </svg>
 );
+
+export const IconChevronLeft = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={ICON_SIZE} height={ICON_SIZE} {...props}>
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+export const IconChevronRight = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={ICON_SIZE} height={ICON_SIZE} {...props}>
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);

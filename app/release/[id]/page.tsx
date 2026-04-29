@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import styles from "./release.module.css";
 import StreamingSection from "./streaming-section";
-import { IconVinyl } from "@/components/icons";
+import { IconVinyl, IconChevronLeft, IconChevronRight } from "@/components/icons";
 
 export default async function ReleasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,10 +12,15 @@ export default async function ReleasePage({ params }: { params: Promise<{ id: st
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const [{ data: records }, { data: prices }] = await Promise.all([
+  const [{ data: records }, { data: prices }, { data: allIds }] = await Promise.all([
     supabase.from("records").select("*").eq("discogs_release_id", id).single(),
     supabase.from("market_prices").select("*").eq("release_id", id).order("created_at", { ascending: false }),
+    supabase.from("records").select("discogs_release_id").order("artist", { ascending: true }).order("title", { ascending: true })
   ]);
+
+  const currentIndex = allIds?.findIndex(r => r.discogs_release_id === parseInt(id, 10)) ?? -1;
+  const prevId = currentIndex > 0 ? allIds?.[currentIndex - 1].discogs_release_id : null;
+  const nextId = (allIds && currentIndex < allIds.length - 1) ? allIds[currentIndex + 1].discogs_release_id : null;
 
   if (!records) {
     return (
@@ -49,7 +54,25 @@ export default async function ReleasePage({ params }: { params: Promise<{ id: st
 
   return (
     <div className={styles.releaseRoot}>
-      <Link href="/" className={styles.backBtn}><span>←</span> Volver a la Colección</Link>
+      <div className={styles.navRow}>
+        <Link href="/" className={styles.backBtn}><span>←</span> Volver</Link>
+        <div className={styles.quickNav}>
+          {prevId ? (
+            <Link href={`/release/${prevId}`} className={styles.navBtn} title="Anterior">
+              <IconChevronLeft className={styles.navIcon} />
+            </Link>
+          ) : (
+            <div className={`${styles.navBtn} ${styles.disabled}`}><IconChevronLeft className={styles.navIcon} /></div>
+          )}
+          {nextId ? (
+            <Link href={`/release/${nextId}`} className={styles.navBtn} title="Siguiente">
+              <IconChevronRight className={styles.navIcon} />
+            </Link>
+          ) : (
+            <div className={`${styles.navBtn} ${styles.disabled}`}><IconChevronRight className={styles.navIcon} /></div>
+          )}
+        </div>
+      </div>
       
       <div className={styles.topSection}>
         <div className={styles.coverBox}>
