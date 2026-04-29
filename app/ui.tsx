@@ -146,6 +146,20 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     </div>
   );
 
+  const getReleaseUrl = (releaseId: any) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (genre) params.set("genre", genre);
+    if (styleFilter) params.set("style", styleFilter);
+    if (year) params.set("year", year);
+    if (labelFilter) params.set("label", labelFilter);
+    if (formatFilter !== "all") params.set("format", formatFilter);
+    if (sortBy !== "priceDesc") params.set("sort", sortBy);
+    if (viewMode !== "all") params.set("view", viewMode);
+    const qs = params.toString();
+    return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
+  };
+
   return (
     <div className={styles.dashboardRoot}>
       {mounted && document.getElementById("header-portal") ? createPortal(tabs, document.getElementById("header-portal")!) : null}
@@ -179,7 +193,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
           </h2>
           <div className={styles.grid}>
             {displayData.map((item: any) => (
-              <a key={item.release_id} href={`/release/${item.release_id}`} className={styles.card}>
+              <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
                     <img src={item.record.cover_image} alt="" className={styles.coverImg} />
