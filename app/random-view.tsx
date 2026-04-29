@@ -13,7 +13,7 @@ export default function RandomView({ records, latestPrices }: any) {
   // Seleccionamos una muestra de discos para la animación (para no saturar el DOM)
   const sampleRecords = useMemo(() => {
     // Shuffle and pick 30
-    return [...records].sort(() => 0.5 - Math.random()).slice(0, 40);
+    return [...records].sort((a: any, b: any) => 0.5 - Math.random()).slice(0, 40);
   }, [records]);
 
   const spin = () => {

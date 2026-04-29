@@ -123,7 +123,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
       <div className={styles.insightsRanking}>
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconEuro className={styles.titleIcon} /> Top 5 Valor Individual</h3>
-            {[...latestPrices].sort((a,b) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p, i) => {
+            {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p, i) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
                 <div key={p.id} className={styles.rankingItem}>
@@ -143,7 +143,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
               const price = p.median_price || p.lowest_price || 0;
               const stock = p.num_for_sale || 1;
               return { ...p, rareScore: price / (stock + 0.5) };
-            }).sort((a,b) => b.rareScore - a.rareScore).slice(0, 5).map((p, i) => {
+            }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p, i) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
                 <div key={p.id} className={styles.rankingItem}>

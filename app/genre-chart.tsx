@@ -16,7 +16,7 @@ export default function StyleChart({ records }: { records: any[] }) {
 
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+      .sort((a: any, b: any) => b.value - a.value)
       .slice(0, 10); // Mostramos top 10 estilos
   }, [records]);
 

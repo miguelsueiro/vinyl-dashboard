@@ -49,10 +49,10 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   
   const sortedData = useMemo(() => {
     const data = [...enriched];
-    if (sortBy === "priceDesc") return data.sort((a, b) => b.price - a.price);
-    if (sortBy === "priceAsc") return data.sort((a, b) => a.price - b.price);
-    if (sortBy === "artistAsc") return data.sort((a, b) => (a.record?.artist || "").localeCompare(b.record?.artist || ""));
-    if (sortBy === "yearDesc") return data.sort((a, b) => (parseInt(b.record?.year) || 0) - (parseInt(a.record?.year) || 0));
+    if (sortBy === "priceDesc") return data.sort((a: any, b: any) => b.price - a.price);
+    if (sortBy === "priceAsc") return data.sort((a: any, b: any) => a.price - b.price);
+    if (sortBy === "artistAsc") return data.sort((a: any, b: any) => (a.record?.artist || "").localeCompare(b.record?.artist || ""));
+    if (sortBy === "yearDesc") return data.sort((a: any, b: any) => (parseInt(b.record?.year) || 0) - (parseInt(a.record?.year) || 0));
     return data;
   }, [enriched, sortBy]);
   
