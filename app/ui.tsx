@@ -43,7 +43,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   }), [latestPrices, recordMap, historicalPrices]);
 
   const totalValue = enriched.reduce((sum: number, item: any) => sum + item.price, 0);
-  const sortedByPriceItems = [...enriched].sort((a,b) => b.price - a.price);
+  const sortedByPriceItems = [...enriched].sort((a: any, b: any) => b.price - a.price);
   const maxPriceItem = sortedByPriceItems.length > 0 ? sortedByPriceItems[0] : null;
   const maxPrice = maxPriceItem ? maxPriceItem.price : 0;
   
@@ -79,7 +79,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
 
   let displayData = filtered;
   if (viewMode === "top10") displayData = filtered.slice(0, 10);
-  else if (viewMode === "rarezas") displayData = filtered.filter((i) => i.isRare);
+  else if (viewMode === "rarezas") displayData = filtered.filter((i: any) => i.isRare);
 
   const sectionTitle = () => {
     if (viewMode === "top10") return "Tus 10 más cotizados";

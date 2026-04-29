@@ -23,7 +23,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
       { name: "100-200€", min: 100, max: 200 },
       { name: "200€+", min: 200, max: 999999 },
     ];
-    return bins.map(bin => ({
+    return bins.map((bin: any) => ({
       ...bin,
       count: latestPrices.filter((p: any) => {
         const price = p.median_price || p.lowest_price || 0;
@@ -42,8 +42,8 @@ export default function AnalyticsView({ latestPrices, records }: any) {
       values[style] = (values[style] || 0) + price;
     });
     return Object.entries(values)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a,b) => b.value - a.value)
+      .map(([name, value]: [string, number]) => ({ name, value }))
+      .sort((a: any, b: any) => b.value - a.value)
       .slice(0, 7);
   }, [latestPrices, records]);
 
@@ -86,7 +86,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={styleValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
-                {styleValueData.map((entry, index) => (
+                {styleValueData.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -123,7 +123,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
       <div className={styles.insightsRanking}>
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconEuro className={styles.titleIcon} /> Top 5 Valor Individual</h3>
-            {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p, i) => {
+            {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p: any, i: number) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
                 <div key={p.id} className={styles.rankingItem}>
@@ -143,7 +143,7 @@ export default function AnalyticsView({ latestPrices, records }: any) {
               const price = p.median_price || p.lowest_price || 0;
               const stock = p.num_for_sale || 1;
               return { ...p, rareScore: price / (stock + 0.5) };
-            }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p, i) => {
+            }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p: any, i: number) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
                 <div key={p.id} className={styles.rankingItem}>
