@@ -80,33 +80,39 @@ async function runUpdate() {
 
         const releaseData: any = await response.json();
         
+        // Diagnóstico profundo para discos sin precio
+        const hasMarketplace = !!releaseData.marketplace_stats;
+        const hasCommunity = !!releaseData.community?.stats;
+
         // 1. Intentar obtener de marketplace_stats (mercado actual)
         let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
         let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         
-        // 2. BÚSQUEDA PROFUNDA: Si no hay median, buscamos en todas las variantes de la comunidad
+        // 2. BÚSQUEDA PROFUNDA
         if (medianPrice === 0) {
-          // Opción A: community.stats
           if (releaseData.community?.stats) {
-            medianPrice = releaseData.community.stats.median?.value || 0;
-            lowestPrice = releaseData.community.stats.low?.value || lowestPrice;
+            // Logueamos el objeto stats para ver qué hay dentro exactamente
+            console.log(`    DEBUG [Community Stats]: ${JSON.stringify(releaseData.community.stats)}`);
+            medianPrice = releaseData.community.stats.median?.value || releaseData.community.stats.median || 0;
+            lowestPrice = releaseData.community.stats.low?.value || releaseData.community.stats.low || lowestPrice;
           }
-          // Opción B: community.rating.stats (a veces viene aquí)
           if (medianPrice === 0 && releaseData.community?.rating?.stats) {
-            medianPrice = releaseData.community.rating.stats.median?.value || 0;
-            lowestPrice = releaseData.community.rating.stats.low?.value || lowestPrice;
+            console.log(`    DEBUG [Rating Stats]: ${JSON.stringify(releaseData.community.rating.stats)}`);
+            medianPrice = releaseData.community.rating.stats.median?.value || releaseData.community.rating.stats.median || 0;
           }
         }
 
-        // 3. Fallback final: si aún no hay median, usamos el lowest
+        // 3. Fallback final
         if (medianPrice === 0) medianPrice = lowestPrice;
 
         const currency = "EUR"; 
 
         if (medianPrice === 0) {
           statsSummary.noData++;
-          console.warn(`  ⚠️ Total silence for ${releaseId}. Checked Marketplace, Community Stats and Ratings.`);
+          console.warn(`  ⚠️ Total silence for ${releaseId}.`);
+          console.log(`    DEBUG [Marketplace Object]: ${JSON.stringify(releaseData.marketplace_stats || "null")}`);
+          console.log(`    DEBUG [Community Object]: ${JSON.stringify(releaseData.community || "null")}`);
           break;
         }
 
