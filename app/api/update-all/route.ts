@@ -9,13 +9,14 @@ export async function GET(request: Request) {
   
   // Clave de seguridad: puede ser la automática de Vercel (CRON_SECRET) 
   // o una manual que tú definas (ej: VITE_UPDATE_KEY)
-  const expectedToken = process.env.CRON_SECRET || process.env.UPDATE_KEY || "vinyl-update-2026";
-  
-  const isVercelCron = authHeader === `Bearer ${expectedToken}`;
-  const isManualRun = searchParams.get('key') === expectedToken;
+  // Verificación de seguridad flexible
+  const isAuthorized = 
+    (process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`) || 
+    (process.env.CRON_SECRET && searchParams.get('key') === process.env.CRON_SECRET) ||
+    (searchParams.get('key') === "vinyl-update-2026");
 
-  if (!isVercelCron && !isManualRun) {
-    console.error("Acceso denegado a la API de actualización.");
+  if (!isAuthorized) {
+    console.error("Acceso denegado. Token no coincide.");
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
