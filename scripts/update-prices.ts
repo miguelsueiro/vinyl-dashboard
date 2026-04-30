@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const discogsToken = process.env.DISCOGS_TOKEN;
+const discogsUsername = process.env.DISCOGS_USERNAME || "crackrecords";
 
 if (!supabaseUrl || !supabaseKey || !discogsToken) {
   console.error("❌ Missing environment variables!");
@@ -12,17 +13,64 @@ if (!supabaseUrl || !supabaseKey || !discogsToken) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function runUpdate() {
-  console.log("🚀 Starting industrial price update via GitHub Actions...");
-  console.log(`Checking token: ${discogsToken ? `PRESENT (length: ${discogsToken.length})` : "MISSING"}`);
+  console.log(`🚀 Starting Full Sync & Price Update for user: ${discogsUsername}`);
+  
+  // --- FASE 1: SINCRONIZACIÓN DE COLECCIÓN ---
+  console.log("📥 Syncing collection from Discogs...");
+  let discogsReleases: any[] = [];
+  let page = 1;
+  let totalPages = 1;
 
-  let statsSummary = {
-    total: 0,
-    success: 0,
-    fallback: 0,
-    noData: 0
-  };
+  try {
+    while (page <= totalPages) {
+      const res = await fetch(`https://api.discogs.com/users/${discogsUsername}/collection/folders/0/releases?page=${page}&per_page=100`, {
+        headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceSync/1.0" }
+      });
+      if (!res.ok) throw new Error(`Discogs Sync Error: ${res.status}`);
+      const data: any = await res.json();
+      discogsReleases = discogsReleases.concat(data.releases);
+      totalPages = data.pagination.pages;
+      page++;
+      // Pequeño delay para no saturar en el sync
+      await new Promise(r => setTimeout(r, 500));
+    }
+    console.log(`✅ Fetched ${discogsReleases.length} releases from Discogs.`);
 
-  // 1. Get ALL records using pagination
+    // Comparar e insertar nuevos
+    for (const release of discogsReleases) {
+      const releaseId = release.id;
+      const { data: existing } = await supabase.from("records").select("id").eq("discogs_release_id", releaseId).single();
+      
+      if (!existing) {
+        console.log(`✨ New release found: ${release.basic_information.artist} - ${release.basic_information.title}`);
+        const info = release.basic_information;
+        const notes = release.notes || [];
+        const vinylCond = notes.find((n: any) => n.field_id === 1)?.value || "Desconocido";
+        const sleeveCond = notes.find((n: any) => n.field_id === 2)?.value || "Desconocido";
+
+        await supabase.from("records").insert({
+          discogs_release_id: releaseId,
+          artist: info.artists?.[0]?.name || "Unknown",
+          title: info.title,
+          year: info.year,
+          label: info.labels?.[0]?.name,
+          genre: info.genres?.[0],
+          style: info.styles?.[0],
+          format: info.formats?.[0]?.name,
+          cover_image: info.cover_image,
+          condition_vinyl: vinylCond,
+          condition_sleeve: sleeveCond
+        });
+      }
+    }
+  } catch (err) {
+    console.error("❌ Sync Phase Failed:", err);
+  }
+
+  // --- FASE 2: ACTUALIZACIÓN DE PRECIOS ---
+  console.log("📈 Starting price updates...");
+  let statsSummary = { total: 0, success: 0, fallback: 0, noData: 0 };
+  
   let allRecords: any[] = [];
   let fetchedCount = 1000;
   let offset = 0;
@@ -33,10 +81,7 @@ async function runUpdate() {
       .select("discogs_release_id, condition_vinyl")
       .range(offset, offset + 999);
     
-    if (error) {
-      console.error("Error fetching records:", error);
-      process.exit(1);
-    }
+    if (error) break;
     if (data) {
       allRecords = allRecords.concat(data);
       fetchedCount = data.length;
@@ -47,7 +92,9 @@ async function runUpdate() {
   }
 
   statsSummary.total = allRecords.length;
-  console.log(`📦 Found ${allRecords.length} records. Processing...`);
+  console.log(`📦 Processing prices for ${allRecords.length} records...`);
+
+  // (Resto de la lógica de precios igual...)
 
   // Mapping de condiciones a llaves de Discogs
   const conditionMap: Record<string, string> = {
