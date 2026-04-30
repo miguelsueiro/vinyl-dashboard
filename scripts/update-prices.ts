@@ -62,7 +62,9 @@ async function runUpdate() {
       const stats = releaseData.marketplace_stats;
 
       if (!stats) {
-        console.warn(`  ⚠️ No marketplace stats for ${releaseId}`);
+        console.warn(`  ⚠️ No marketplace stats for ${releaseId}. Keys available: ${Object.keys(releaseData).join(", ")}`);
+        // Si faltan stats, imprimimos si el objeto tiene algún indicador de bloqueo
+        if (releaseData.message) console.warn(`    Message from Discogs: ${releaseData.message}`);
         continue;
       }
 
