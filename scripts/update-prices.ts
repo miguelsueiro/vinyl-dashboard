@@ -74,10 +74,15 @@ async function runUpdate() {
         }
 
         const releaseData: any = await response.json();
-        const stats = releaseData.marketplace_stats;
+        
+        // Intentar obtener estadísticas de marketplace_stats o directamente de la raíz
+        const lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
+        const medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || lowestPrice;
+        const numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
+        const currency = releaseData.marketplace_stats?.lowest_price?.currency || "EUR";
 
-        if (!stats) {
-          console.warn(`  ⚠️ No marketplace stats for ${releaseId}. Keys available: ${Object.keys(releaseData).join(", ")}`);
+        if (lowestPrice === 0 && medianPrice === 0) {
+          console.warn(`  ⚠️ No price data found for ${releaseId}. Keys: ${Object.keys(releaseData).join(", ")}`);
           break;
         }
 
@@ -85,16 +90,16 @@ async function runUpdate() {
           .from("market_prices")
           .insert({
             release_id: releaseId.toString(),
-            lowest_price: stats.lowest_price?.value || 0,
-            median_price: stats.median_price?.value || 0,
-            num_for_sale: stats.num_for_sale || 0,
-            currency: stats.lowest_price?.currency || "EUR"
+            lowest_price: lowestPrice,
+            median_price: medianPrice,
+            num_for_sale: numForSale,
+            currency: currency
           });
 
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
-          console.log(`  ✅ Success: ${stats.median_price?.value || stats.lowest_price?.value || 0} EUR`);
+          console.log(`  ✅ Success: ${medianPrice} EUR (Median/Lowest)`);
         }
         
         success = true;
