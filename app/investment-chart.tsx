@@ -8,27 +8,35 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
 
   const filteredSnapshots = useMemo(() => {
     if (!snapshots) return [];
-    if (range === "ALL") return snapshots;
+    
+    // 1. Agrupar por día (solo el último snapshot de cada día)
+    const dailyMap = new Map();
+    snapshots.forEach(s => {
+      const dateKey = new Date(s.created_at).toISOString().split('T')[0];
+      dailyMap.set(dateKey, s);
+    });
+    const uniqueDays = Array.from(dailyMap.values());
+
+    if (range === "ALL") return uniqueDays;
 
     const now = new Date();
     const cutoff = new Date();
     if (range === "1M") cutoff.setMonth(now.getMonth() - 1);
     if (range === "1Y") cutoff.setFullYear(now.getFullYear() - 1);
 
-    return snapshots.filter(s => new Date(s.created_at) >= cutoff);
+    return uniqueDays.filter(s => new Date(s.created_at) >= cutoff);
   }, [snapshots, range]);
 
   const chartData = useMemo(() => {
     return filteredSnapshots.map((s) => ({
       date: new Date(s.created_at).toLocaleDateString("es-ES", { 
-        day: range === "1M" ? '2-digit' : undefined,
-        month: 'short',
-        year: range === "ALL" ? '2-digit' : undefined
+        day: '2-digit',
+        month: 'short'
       }),
       fullDate: new Date(s.created_at).toLocaleDateString("es-ES", { day: '2-digit', month: 'long', year: 'numeric' }),
       value: Number(s.total_value.toFixed(2)),
     }));
-  }, [filteredSnapshots, range]);
+  }, [filteredSnapshots]);
 
   const currencyFormatter = new Intl.NumberFormat("es-ES", {
     style: "currency",

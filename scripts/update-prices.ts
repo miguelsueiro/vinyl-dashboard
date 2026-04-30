@@ -30,7 +30,7 @@ async function runUpdate() {
   while (fetchedCount === 1000) {
     const { data, error } = await supabase
       .from("records")
-      .select("discogs_release_id")
+      .select("discogs_release_id, media_condition")
       .range(offset, offset + 999);
     
     if (error) {
@@ -49,10 +49,26 @@ async function runUpdate() {
   statsSummary.total = allRecords.length;
   console.log(`📦 Found ${allRecords.length} records. Processing...`);
 
-  // 2. Update each record with Discogs rate limiting (60req/min -> ~1s per request)
+  // Mapping de condiciones a llaves de Discogs
+  const conditionMap: Record<string, string> = {
+    "Mint (M)": "Mint (M)",
+    "Near Mint (NM or M-)": "Near Mint (NM or M-)",
+    "Very Good Plus (VG+)": "Very Good Plus (VG+)",
+    "Very Good (VG)": "Very Good (VG)",
+    "Good Plus (G+)": "Good Plus (G+)",
+    "Good (G)": "Good (G)",
+    "Fair (F)": "Fair (F)",
+    "Poor (P)": "Poor (P)",
+    "NM": "Near Mint (NM or M-)",
+    "VG+": "Very Good Plus (VG+)",
+    "VG": "Very Good (VG)",
+    "M": "Mint (M)"
+  };
+
+  // 2. Update each record with Discogs rate limiting
   for (let i = 0; i < allRecords.length; i++) {
-    const releaseId = allRecords[i].discogs_release_id;
-    console.log(`[${i+1}/${allRecords.length}] Updating ID ${releaseId}...`);
+    const { discogs_release_id: releaseId, media_condition: userCondition } = allRecords[i];
+    console.log(`[${i+1}/${allRecords.length}] Updating ID ${releaseId} (${userCondition || "No condition"})...`);
 
     let success = false;
     let retries = 0;
@@ -60,63 +76,57 @@ async function runUpdate() {
     while (!success && retries < 2) {
       try {
         const response = await fetch(`https://api.discogs.com/releases/${releaseId}`, {
-          headers: {
-            "Authorization": `Discogs token=${discogsToken}`,
-            "User-Agent": "VinylIntelligence/1.0"
-          }
+          headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.2" }
         });
 
         if (response.status === 429) {
-          console.warn("  ⚠️ Rate limit hit (429). Waiting 60 seconds...");
+          console.warn("  ⚠️ Rate limit hit (429). Waiting 60s...");
           await new Promise(r => setTimeout(r, 60000));
           retries++;
           continue;
         }
 
-        if (!response.ok) {
-          console.error(`  ⚠️ Discogs error ${response.status} for ${releaseId}`);
-          break;
-        }
-
         const releaseData: any = await response.json();
         
-        // 1. Intentar obtener de marketplace_stats (mercado actual)
         let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
         let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         
-        // 2. FALLBACK 1: Endpoint de /stats
-        if (medianPrice === 0) {
-          try {
-            const statsRes = await fetch(`https://api.discogs.com/releases/${releaseId}/stats`, {
-              headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.1 (Contact: miguelsueiro)" }
-            });
-            if (statsRes.ok) {
-              const statsData: any = await statsRes.json();
-              medianPrice = statsData.median_price?.value || statsData.community?.stats?.median?.value || 0;
-              lowestPrice = statsData.lowest_price?.value || lowestPrice;
+        // Intentar obtener sugerencias para precisión por estado
+        try {
+          const suggestRes = await fetch(`https://api.discogs.com/marketplace/price_suggestions/${releaseId}`, {
+            headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.2" }
+          });
+          if (suggestRes.ok) {
+            const suggestData: any = await suggestRes.json();
+            
+            // Prioridad 1: Usar la condición real del usuario
+            const targetKey = conditionMap[userCondition || ""] || "Very Good Plus (VG+)";
+            const conditionPrice = suggestData[targetKey]?.value;
+            
+            if (conditionPrice) {
+              medianPrice = conditionPrice;
+              console.log(`    🎯 Matched condition "${targetKey}": ${conditionPrice} EUR`);
+            } else {
+              // Si no hay match exacto, usar VG+ o el primer valor que encontremos
+              medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM or M-)"]?.value || medianPrice;
             }
-          } catch (e) {}
+          }
+        } catch (e) {}
+
+        // Fallback final de comunidad si todo lo anterior falla
+        if (medianPrice === 0 && releaseData.community?.stats) {
+          medianPrice = releaseData.community.stats.median?.value || 0;
+          lowestPrice = releaseData.community.stats.low?.value || lowestPrice;
         }
 
-        // 3. FALLBACK 2: Endpoint de /price_suggestions (La "Llave Maestra")
-        if (medianPrice === 0) {
-          try {
-            const suggestRes = await fetch(`https://api.discogs.com/marketplace/price_suggestions/${releaseId}`, {
-              headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.1 (Contact: miguelsueiro)" }
-            });
-            if (suggestRes.ok) {
-              const suggestData: any = await suggestRes.json();
-              console.log(`    DEBUG [Suggestions]: ${JSON.stringify(suggestData)}`);
-              // Este endpoint devuelve objetos como "Good (G)": { "value": 12.3, "currency": "EUR" }
-              // Buscamos el "Very Good Plus (VG+)" o "Near Mint (NM)" que suele ser el estándar para el Median
-              medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM)"]?.value || suggestData["Good Plus (G+)"]?.value || 0;
-            }
-          } catch (e) {}
-        }
-
-        // 4. Fallback final: si aún no hay median, usamos el lowest
         if (medianPrice === 0) medianPrice = lowestPrice;
+
+        if (medianPrice === 0) {
+          statsSummary.noData++;
+          console.warn(`  ⚠️ Silence for ${releaseId}.`);
+          break;
+        }
 
         const currency = "EUR"; 
 
@@ -136,14 +146,13 @@ async function runUpdate() {
             currency: currency
           });
 
-        const isFallback = !releaseData.marketplace_stats?.median_price?.value && !releaseData.median_price;
-
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
+          const isFallback = medianPrice === lowestPrice && medianPrice !== 0;
           if (isFallback) statsSummary.fallback++;
           else statsSummary.success++;
-          console.log(`  ✅ Success: ${medianPrice} EUR (${isFallback ? "Fallback" : "Median"})`);
+          console.log(`  ✅ Success: ${medianPrice} EUR`);
         }
         
         success = true;
