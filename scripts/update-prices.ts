@@ -30,7 +30,7 @@ async function runUpdate() {
   while (fetchedCount === 1000) {
     const { data, error } = await supabase
       .from("records")
-      .select("discogs_release_id, media_condition")
+      .select("discogs_release_id, condition_vinyl")
       .range(offset, offset + 999);
     
     if (error) {
@@ -62,12 +62,14 @@ async function runUpdate() {
     "NM": "Near Mint (NM or M-)",
     "VG+": "Very Good Plus (VG+)",
     "VG": "Very Good (VG)",
-    "M": "Mint (M)"
+    "M": "Mint (M)",
+    "Mint": "Mint (M)",
+    "Near Mint": "Near Mint (NM or M-)"
   };
 
   // 2. Update each record with Discogs rate limiting
   for (let i = 0; i < allRecords.length; i++) {
-    const { discogs_release_id: releaseId, media_condition: userCondition } = allRecords[i];
+    const { discogs_release_id: releaseId, condition_vinyl: userCondition } = allRecords[i];
     console.log(`[${i+1}/${allRecords.length}] Updating ID ${releaseId} (${userCondition || "No condition"})...`);
 
     let success = false;
@@ -89,8 +91,9 @@ async function runUpdate() {
         const releaseData: any = await response.json();
         
         let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
-        let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
+        let medianPrice = 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
+        let isUsingCondition = false;
         
         // Intentar obtener sugerencias para precisión por estado
         try {
@@ -106,18 +109,16 @@ async function runUpdate() {
             
             if (conditionPrice) {
               medianPrice = conditionPrice;
-              console.log(`    🎯 Matched condition "${targetKey}": ${conditionPrice} EUR`);
+              isUsingCondition = true;
             } else {
-              // Si no hay match exacto, usar VG+ o el primer valor que encontremos
-              medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM or M-)"]?.value || medianPrice;
+              medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM or M-)"]?.value || 0;
             }
           }
         } catch (e) {}
 
         // Fallback final de comunidad si todo lo anterior falla
-        if (medianPrice === 0 && releaseData.community?.stats) {
-          medianPrice = releaseData.community.stats.median?.value || 0;
-          lowestPrice = releaseData.community.stats.low?.value || lowestPrice;
+        if (medianPrice === 0) {
+          medianPrice = releaseData.community?.stats?.median?.value || releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         }
 
         if (medianPrice === 0) medianPrice = lowestPrice;
@@ -129,12 +130,6 @@ async function runUpdate() {
         }
 
         const currency = "EUR"; 
-
-        if (medianPrice === 0) {
-          statsSummary.noData++;
-          console.warn(`  ⚠️ Total silence for ${releaseId}. No price data in /release nor /stats.`);
-          break;
-        }
 
         const { error: insertError } = await supabase
           .from("market_prices")
@@ -149,10 +144,9 @@ async function runUpdate() {
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
-          const isFallback = medianPrice === lowestPrice && medianPrice !== 0;
-          if (isFallback) statsSummary.fallback++;
+          if (!isUsingCondition) statsSummary.fallback++;
           else statsSummary.success++;
-          console.log(`  ✅ Success: ${medianPrice} EUR`);
+          console.log(`  ✅ Success: ${medianPrice} EUR (${isUsingCondition ? `Condition: ${userCondition}` : "Standard VG+"})`);
         }
         
         success = true;
