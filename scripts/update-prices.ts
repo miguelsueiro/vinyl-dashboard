@@ -85,31 +85,37 @@ async function runUpdate() {
         let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         
-        // 2. LLAMADA DEDICADA A ESTADÍSTICAS: Si no hay median, pedimos el endpoint de /stats
+        // 2. FALLBACK 1: Endpoint de /stats
         if (medianPrice === 0) {
           try {
             const statsRes = await fetch(`https://api.discogs.com/releases/${releaseId}/stats`, {
-              headers: {
-                "Authorization": `Discogs token=${discogsToken}`,
-                "User-Agent": "VinylIntelligence/1.0"
-              }
+              headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.1 (Contact: miguelsueiro)" }
             });
             if (statsRes.ok) {
               const statsData: any = await statsRes.json();
-              console.log(`    DEBUG [Stats Endpoint]: ${JSON.stringify(statsData)}`);
-              // El endpoint /stats suele tener num_for_sale y lowest_price
-              // El histórico (median) a veces viene en 'community' o 'stats'
-              numForSale = statsData.num_for_sale || numForSale;
-              lowestPrice = statsData.lowest_price?.value || lowestPrice;
-              // Si el endpoint devuelve el histórico (median), lo pillamos
               medianPrice = statsData.median_price?.value || statsData.community?.stats?.median?.value || 0;
+              lowestPrice = statsData.lowest_price?.value || lowestPrice;
             }
-          } catch (e) {
-            console.warn(`    ⚠️ Failed to fetch extra stats for ${releaseId}`);
-          }
+          } catch (e) {}
         }
 
-        // 3. Fallback final: si aún no hay median, usamos el lowest del mercado
+        // 3. FALLBACK 2: Endpoint de /price_suggestions (La "Llave Maestra")
+        if (medianPrice === 0) {
+          try {
+            const suggestRes = await fetch(`https://api.discogs.com/marketplace/price_suggestions/${releaseId}`, {
+              headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.1 (Contact: miguelsueiro)" }
+            });
+            if (suggestRes.ok) {
+              const suggestData: any = await suggestRes.json();
+              console.log(`    DEBUG [Suggestions]: ${JSON.stringify(suggestData)}`);
+              // Este endpoint devuelve objetos como "Good (G)": { "value": 12.3, "currency": "EUR" }
+              // Buscamos el "Very Good Plus (VG+)" o "Near Mint (NM)" que suele ser el estándar para el Median
+              medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM)"]?.value || suggestData["Good Plus (G+)"]?.value || 0;
+            }
+          } catch (e) {}
+        }
+
+        // 4. Fallback final: si aún no hay median, usamos el lowest
         if (medianPrice === 0) medianPrice = lowestPrice;
 
         const currency = "EUR"; 
