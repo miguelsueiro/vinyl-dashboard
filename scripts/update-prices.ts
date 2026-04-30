@@ -15,10 +15,14 @@ async function runUpdate() {
   console.log("🚀 Starting industrial price update via GitHub Actions...");
   console.log(`Checking token: ${discogsToken ? `PRESENT (length: ${discogsToken.length})` : "MISSING"}`);
 
-  if (!discogsToken || discogsToken.length < 5) {
-    console.error("❌ DISCOGS_TOKEN is invalid or missing!");
-    process.exit(1);
-  }
+  let statsSummary = {
+    total: 0,
+    success: 0,
+    fallback: 0,
+    noData: 0
+  };
+
+  // 1. Get ALL records using pagination
   let allRecords: any[] = [];
   let fetchedCount = 1000;
   let offset = 0;
@@ -42,6 +46,7 @@ async function runUpdate() {
     }
   }
 
+  statsSummary.total = allRecords.length;
   console.log(`📦 Found ${allRecords.length} records. Processing...`);
 
   // 2. Update each record with Discogs rate limiting (60req/min -> ~1s per request)
@@ -75,14 +80,27 @@ async function runUpdate() {
 
         const releaseData: any = await response.json();
         
-        // Intentar obtener estadísticas de marketplace_stats o directamente de la raíz
-        const lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
-        const medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || lowestPrice;
-        const numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
-        const currency = releaseData.marketplace_stats?.lowest_price?.currency || "EUR";
+        // 1. Intentar obtener de marketplace_stats (mercado actual)
+        let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
+        let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
+        let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
+        
+        // 2. Si no hay datos de mercado (común si hay 0 a la venta), buscar en el historial de la comunidad
+        if (medianPrice === 0 && releaseData.community?.stats) {
+          const cStats = releaseData.community.stats;
+          // Discogs a veces lo llama 'rating' o 'stats', buscamos el histórico
+          lowestPrice = cStats.low?.value || lowestPrice;
+          medianPrice = cStats.median?.value || medianPrice;
+        }
 
-        if (lowestPrice === 0 && medianPrice === 0) {
-          console.warn(`  ⚠️ No price data found for ${releaseId}. Keys: ${Object.keys(releaseData).join(", ")}`);
+        // 3. Fallback final: si aún no hay median, usamos el lowest
+        if (medianPrice === 0) medianPrice = lowestPrice;
+
+        const currency = "EUR"; // Simplificamos a EUR ya que Discogs suele convertirlo
+
+        if (medianPrice === 0) {
+          statsSummary.noData++;
+          console.warn(`  ⚠️ Total silence for ${releaseId}. No marketplace AND no community stats found.`);
           break;
         }
 
@@ -99,7 +117,9 @@ async function runUpdate() {
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
-          console.log(`  ✅ Success: ${medianPrice} EUR (Median/Lowest)`);
+          if (isFallback) statsSummary.fallback++;
+          else statsSummary.success++;
+          console.log(`  ✅ Success: ${medianPrice} EUR (${isFallback ? "Lowest Fallback" : "Median"})`);
         }
         
         success = true;
@@ -143,14 +163,19 @@ async function runUpdate() {
     }
   });
   
-  const totalValue = Array.from(latestPricesMap.values()).reduce((a, b) => a + b, 0);
+  const totalValue = Array.from(latestPricesMap.values()).reduce((a: any, b: any) => a + b, 0);
   console.log(`✨ Total Collection Value: ${totalValue.toFixed(2)} EUR`);
 
   const { error: snapError } = await supabase.from("collection_snapshots").insert({ total_value: totalValue });
   if (snapError) console.error("❌ Error saving snapshot:", snapError);
   else console.log("✅ Snapshot saved.");
 
-  console.log("🏁 Global update finished successfully.");
+  console.log("\n--- 🏁 MISSION SUMMARY ---");
+  console.log(`📦 Total Records:    ${statsSummary.total}`);
+  console.log(`✅ Real Medians:    ${statsSummary.success}`);
+  console.log(`📉 Low Fallbacks:   ${statsSummary.fallback}`);
+  console.log(`❓ No Data (0€):    ${statsSummary.noData}`);
+  console.log("---------------------------\n");
 }
 
 runUpdate();
