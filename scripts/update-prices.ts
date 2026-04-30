@@ -114,12 +114,14 @@ async function runUpdate() {
             currency: currency
           });
 
+        const isFallback = !releaseData.marketplace_stats?.median_price?.value && !releaseData.median_price;
+
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
           if (isFallback) statsSummary.fallback++;
           else statsSummary.success++;
-          console.log(`  ✅ Success: ${medianPrice} EUR (${isFallback ? "Lowest Fallback" : "Median"})`);
+          console.log(`  ✅ Success: ${medianPrice} EUR (${isFallback ? "Fallback" : "Median"})`);
         }
         
         success = true;
