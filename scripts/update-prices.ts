@@ -45,48 +45,64 @@ async function runUpdate() {
     const releaseId = allRecords[i].discogs_release_id;
     console.log(`[${i+1}/${allRecords.length}] Updating ID ${releaseId}...`);
 
-    try {
-      const response = await fetch(`https://api.discogs.com/releases/${releaseId}`, {
-        headers: {
-          "Authorization": `Discogs token=${discogsToken}`,
-          "User-Agent": "VinylIntelligence/1.0"
-        }
-      });
+    let success = false;
+    let retries = 0;
 
-      if (!response.ok) {
-        console.error(`  ⚠️ Discogs error ${response.status} for ${releaseId}`);
-        continue;
-      }
-
-      const releaseData: any = await response.json();
-      const stats = releaseData.marketplace_stats;
-
-      if (!stats) {
-        console.warn(`  ⚠️ No marketplace stats for ${releaseId}. Keys available: ${Object.keys(releaseData).join(", ")}`);
-        // Si faltan stats, imprimimos si el objeto tiene algún indicador de bloqueo
-        if (releaseData.message) console.warn(`    Message from Discogs: ${releaseData.message}`);
-        continue;
-      }
-
-      const { error: insertError } = await supabase
-        .from("market_prices")
-        .insert({
-          release_id: releaseId.toString(),
-          lowest_price: stats.lowest_price?.value || 0,
-          median_price: stats.median_price?.value || 0,
-          num_for_sale: stats.num_for_sale || 0,
-          currency: stats.lowest_price?.currency || "EUR"
+    while (!success && retries < 2) {
+      try {
+        const response = await fetch(`https://api.discogs.com/releases/${releaseId}`, {
+          headers: {
+            "Authorization": `Discogs token=${discogsToken}`,
+            "User-Agent": "VinylIntelligence/1.0"
+          }
         });
 
-      if (insertError) console.error(`  ❌ Supabase insert error:`, insertError);
-      else console.log(`  ✅ Success: ${stats.median_price?.value || stats.lowest_price?.value || 0} EUR`);
+        if (response.status === 429) {
+          console.warn("  ⚠️ Rate limit hit (429). Waiting 60 seconds...");
+          await new Promise(r => setTimeout(r, 60000));
+          retries++;
+          continue;
+        }
 
-    } catch (err) {
-      console.error(`  ❌ Failed fetch for ${releaseId}:`, err);
+        if (!response.ok) {
+          console.error(`  ⚠️ Discogs error ${response.status} for ${releaseId}`);
+          break;
+        }
+
+        const releaseData: any = await response.json();
+        const stats = releaseData.marketplace_stats;
+
+        if (!stats) {
+          console.warn(`  ⚠️ No marketplace stats for ${releaseId}`);
+          break;
+        }
+
+        const { error: insertError } = await supabase
+          .from("market_prices")
+          .insert({
+            release_id: releaseId.toString(),
+            lowest_price: stats.lowest_price?.value || 0,
+            median_price: stats.median_price?.value || 0,
+            num_for_sale: stats.num_for_sale || 0,
+            currency: stats.lowest_price?.currency || "EUR"
+          });
+
+        if (insertError) {
+          console.error(`  ❌ Supabase insert error:`, insertError);
+        } else {
+          console.log(`  ✅ Success: ${stats.median_price?.value || stats.lowest_price?.value || 0} EUR`);
+        }
+        
+        success = true;
+
+      } catch (err) {
+        console.error(`  ❌ Failed fetch for ${releaseId}:`, err);
+        break;
+      }
     }
 
-    // Rate limit: 1.2s delay to be safe
-    await new Promise(r => setTimeout(r, 1200));
+    // Base delay: 2s between requests
+    await new Promise(r => setTimeout(r, 2000));
   }
 
   // 3. Create global snapshot
