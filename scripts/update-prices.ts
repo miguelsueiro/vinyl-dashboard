@@ -13,8 +13,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function runUpdate() {
   console.log("🚀 Starting industrial price update via GitHub Actions...");
+  console.log(`Checking token: ${discogsToken ? `PRESENT (length: ${discogsToken.length})` : "MISSING"}`);
 
-  // 1. Get ALL records using pagination
+  if (!discogsToken || discogsToken.length < 5) {
+    console.error("❌ DISCOGS_TOKEN is invalid or missing!");
+    process.exit(1);
+  }
   let allRecords: any[] = [];
   let fetchedCount = 1000;
   let offset = 0;
@@ -73,7 +77,7 @@ async function runUpdate() {
         const stats = releaseData.marketplace_stats;
 
         if (!stats) {
-          console.warn(`  ⚠️ No marketplace stats for ${releaseId}`);
+          console.warn(`  ⚠️ No marketplace stats for ${releaseId}. Keys available: ${Object.keys(releaseData).join(", ")}`);
           break;
         }
 
