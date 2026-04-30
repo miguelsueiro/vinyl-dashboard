@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import ClientDashboard from "./ui";
 
+export const revalidate = 0;
+
 export default async function Home() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
