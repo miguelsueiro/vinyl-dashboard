@@ -85,22 +85,28 @@ async function runUpdate() {
         let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         
-        // 2. Si no hay datos de mercado (común si hay 0 a la venta), buscar en el historial de la comunidad
-        if (medianPrice === 0 && releaseData.community?.stats) {
-          const cStats = releaseData.community.stats;
-          // Discogs a veces lo llama 'rating' o 'stats', buscamos el histórico
-          lowestPrice = cStats.low?.value || lowestPrice;
-          medianPrice = cStats.median?.value || medianPrice;
+        // 2. BÚSQUEDA PROFUNDA: Si no hay median, buscamos en todas las variantes de la comunidad
+        if (medianPrice === 0) {
+          // Opción A: community.stats
+          if (releaseData.community?.stats) {
+            medianPrice = releaseData.community.stats.median?.value || 0;
+            lowestPrice = releaseData.community.stats.low?.value || lowestPrice;
+          }
+          // Opción B: community.rating.stats (a veces viene aquí)
+          if (medianPrice === 0 && releaseData.community?.rating?.stats) {
+            medianPrice = releaseData.community.rating.stats.median?.value || 0;
+            lowestPrice = releaseData.community.rating.stats.low?.value || lowestPrice;
+          }
         }
 
         // 3. Fallback final: si aún no hay median, usamos el lowest
         if (medianPrice === 0) medianPrice = lowestPrice;
 
-        const currency = "EUR"; // Simplificamos a EUR ya que Discogs suele convertirlo
+        const currency = "EUR"; 
 
         if (medianPrice === 0) {
           statsSummary.noData++;
-          console.warn(`  ⚠️ Total silence for ${releaseId}. No marketplace AND no community stats found.`);
+          console.warn(`  ⚠️ Total silence for ${releaseId}. Checked Marketplace, Community Stats and Ratings.`);
           break;
         }
 
