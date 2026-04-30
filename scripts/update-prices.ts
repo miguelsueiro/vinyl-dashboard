@@ -80,39 +80,43 @@ async function runUpdate() {
 
         const releaseData: any = await response.json();
         
-        // Diagnóstico profundo para discos sin precio
-        const hasMarketplace = !!releaseData.marketplace_stats;
-        const hasCommunity = !!releaseData.community?.stats;
-
         // 1. Intentar obtener de marketplace_stats (mercado actual)
         let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
         let medianPrice = releaseData.marketplace_stats?.median_price?.value || releaseData.median_price || 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         
-        // 2. BÚSQUEDA PROFUNDA
+        // 2. LLAMADA DEDICADA A ESTADÍSTICAS: Si no hay median, pedimos el endpoint de /stats
         if (medianPrice === 0) {
-          if (releaseData.community?.stats) {
-            // Logueamos el objeto stats para ver qué hay dentro exactamente
-            console.log(`    DEBUG [Community Stats]: ${JSON.stringify(releaseData.community.stats)}`);
-            medianPrice = releaseData.community.stats.median?.value || releaseData.community.stats.median || 0;
-            lowestPrice = releaseData.community.stats.low?.value || releaseData.community.stats.low || lowestPrice;
-          }
-          if (medianPrice === 0 && releaseData.community?.rating?.stats) {
-            console.log(`    DEBUG [Rating Stats]: ${JSON.stringify(releaseData.community.rating.stats)}`);
-            medianPrice = releaseData.community.rating.stats.median?.value || releaseData.community.rating.stats.median || 0;
+          try {
+            const statsRes = await fetch(`https://api.discogs.com/releases/${releaseId}/stats`, {
+              headers: {
+                "Authorization": `Discogs token=${discogsToken}`,
+                "User-Agent": "VinylIntelligence/1.0"
+              }
+            });
+            if (statsRes.ok) {
+              const statsData: any = await statsRes.json();
+              console.log(`    DEBUG [Stats Endpoint]: ${JSON.stringify(statsData)}`);
+              // El endpoint /stats suele tener num_for_sale y lowest_price
+              // El histórico (median) a veces viene en 'community' o 'stats'
+              numForSale = statsData.num_for_sale || numForSale;
+              lowestPrice = statsData.lowest_price?.value || lowestPrice;
+              // Si el endpoint devuelve el histórico (median), lo pillamos
+              medianPrice = statsData.median_price?.value || statsData.community?.stats?.median?.value || 0;
+            }
+          } catch (e) {
+            console.warn(`    ⚠️ Failed to fetch extra stats for ${releaseId}`);
           }
         }
 
-        // 3. Fallback final
+        // 3. Fallback final: si aún no hay median, usamos el lowest del mercado
         if (medianPrice === 0) medianPrice = lowestPrice;
 
         const currency = "EUR"; 
 
         if (medianPrice === 0) {
           statsSummary.noData++;
-          console.warn(`  ⚠️ Total silence for ${releaseId}.`);
-          console.log(`    DEBUG [Marketplace Object]: ${JSON.stringify(releaseData.marketplace_stats || "null")}`);
-          console.log(`    DEBUG [Community Object]: ${JSON.stringify(releaseData.community || "null")}`);
+          console.warn(`  ⚠️ Total silence for ${releaseId}. No price data in /release nor /stats.`);
           break;
         }
 
