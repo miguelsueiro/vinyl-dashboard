@@ -45,8 +45,23 @@ async function runUpdate() {
         console.log(`✨ New release found: ${release.basic_information.artist} - ${release.basic_information.title}`);
         const info = release.basic_information;
         const notes = release.notes || [];
-        const vinylCond = notes.find((n: any) => n.field_id === 1)?.value || "Desconocido";
-        const sleeveCond = notes.find((n: any) => n.field_id === 2)?.value || "Desconocido";
+        
+        // Función para adivinar si una nota es una condición de disco
+        const guessCondition = (notes: any[]) => {
+          const conditionKeywords = ["VG", "NM", "Mint", "Near Mint", "Very Good", "G+", "Fair", "Poor"];
+          // Primero intentamos por field_id (1=Media, 2=Sleeve habitualmente)
+          let media = notes.find((n: any) => n.field_id === 1)?.value;
+          let sleeve = notes.find((n: any) => n.field_id === 2)?.value;
+
+          // Si no los encontramos por ID, buscamos en todos los campos cualquier valor que se parezca a una condición
+          if (!media) {
+            const found = notes.find((n: any) => conditionKeywords.some(k => n.value?.includes(k)));
+            media = found?.value;
+          }
+          return { media: media || "Desconocido", sleeve: sleeve || "Desconocido" };
+        };
+
+        const { media: vinylCond, sleeve: sleeveCond } = guessCondition(notes);
 
         await supabase.from("records").insert({
           discogs_release_id: releaseId,

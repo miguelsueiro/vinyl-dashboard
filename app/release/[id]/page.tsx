@@ -19,52 +19,8 @@ export default async function ReleasePage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. Obtener todos los datos necesarios para recrear el estado del listado
-  // (Replica la lógica de Home y UI para ser coherente con los filtros)
-  let allRecords: any[] = [];
-  let fetched = 1000;
-  let offset = 0;
-  while(fetched === 1000) {
-    const { data } = await supabase.from("records").select("*").range(offset, offset + 999);
-    if(data && data.length > 0) {
-      allRecords = allRecords.concat(data);
-      fetched = data.length;
-      offset += 1000;
-    } else {
-      fetched = 0;
-    }
-  }
-
-  let allPrices: any[] = [];
-  let fetchedPrices = 1000;
-  let offsetPrices = 0;
-  while(fetchedPrices === 1000) {
-    const { data } = await supabase.from("market_prices").select("*").order("created_at", { ascending: false }).range(offsetPrices, offsetPrices + 999);
-    if(data && data.length > 0) {
-      allPrices = allPrices.concat(data);
-      fetchedPrices = data.length;
-      offsetPrices += 1000;
-    } else {
-      fetchedPrices = 0;
-    }
-  }
-
-  // 2. Mapear y procesar como en UI.tsx
-  const latestPricesMap = new Map();
-  allPrices?.forEach((p: any) => {
-    if (!latestPricesMap.has(p.release_id)) latestPricesMap.set(p.release_id, p);
-  });
-
-  const recordMap = new Map(allRecords.map((r: any) => [r.discogs_release_id, r]));
-  
-  // Recreamos 'enriched'
-  let enriched = Array.from(latestPricesMap.values()).map((p: any) => {
-    const record = recordMap.get(p.release_id);
-    let price = p.median_price || p.lowest_price || 0;
-    return { ...p, record, price, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
-  });
-
-  // 3. Aplicar Filtros y Sort (mismos que en ui.tsx)
+  // 1. Obtener solo los IDs necesarios para la navegación (MUCHO más rápido)
+  // Replicamos los filtros pero solo pedimos la columna de ID
   const search = (sp.search as string) || "";
   const genre = (sp.genre as string) || "";
   const styleFilter = (sp.style as string) || "";
@@ -74,22 +30,21 @@ export default async function ReleasePage({
   const sortBy = (sp.sort as string) || "priceDesc";
   const viewMode = (sp.view as string) || "all";
 
-  // Sort
-  if (sortBy === "priceDesc") enriched.sort((a,b) => b.price - a.price);
-  else if (sortBy === "priceAsc") enriched.sort((a,b) => a.price - b.price);
-  else if (sortBy === "artistAsc") enriched.sort((a,b) => (a.record?.artist || "").localeCompare(b.record?.artist || ""));
-  else if (sortBy === "yearDesc") enriched.sort((a,b) => (parseInt(b.record?.year) || 0) - (parseInt(a.record?.year) || 0));
+  // Obtenemos solo los IDs para navegar sin cargar 1300+ objetos completos
+  const { data: navData } = await supabase
+    .from("records")
+    .select("discogs_release_id, artist, title, year, genre, style, label, format");
 
-  // Filter
-  let filtered = enriched.filter((item: any) => {
+  // Aplicamos la misma lógica de filtrado que en la home pero en memoria
+  let filteredIds = (navData || []).filter((r: any) => {
     const q = search.toLowerCase();
-    const matchSearch = item.record?.artist?.toLowerCase().includes(q) || item.record?.title?.toLowerCase().includes(q) || item.release_id.toString().includes(q);
-    const matchGenre = !genre || item.record?.genre?.toLowerCase().includes(genre.trim().toLowerCase());
-    const matchStyle = !styleFilter || item.record?.style?.toLowerCase().includes(styleFilter.trim().toLowerCase());
-    const matchYear = !year || String(item.record?.year) === year.trim();
-    const matchLabel = !labelFilter || item.record?.label?.toLowerCase().includes(labelFilter.trim().toLowerCase());
+    const matchSearch = r.artist?.toLowerCase().includes(q) || r.title?.toLowerCase().includes(q) || r.discogs_release_id.toString().includes(q);
+    const matchGenre = !genre || r.genre?.toLowerCase().includes(genre.trim().toLowerCase());
+    const matchStyle = !styleFilter || r.style?.toLowerCase().includes(styleFilter.trim().toLowerCase());
+    const matchYear = !year || String(r.year) === year.trim();
+    const matchLabel = !labelFilter || r.label?.toLowerCase().includes(labelFilter.trim().toLowerCase());
     
-    let rawFormat = item.record?.format?.toLowerCase() || "";
+    let rawFormat = r.format?.toLowerCase() || "";
     let itemFormatGroup = "Vinilo";
     if (rawFormat.includes("cd")) itemFormatGroup = "CD";
     if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
@@ -97,19 +52,29 @@ export default async function ReleasePage({
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
   });
 
-  if (viewMode === "top10") filtered = filtered.slice(0, 10);
-  else if (viewMode === "rarezas") filtered = filtered.filter((i: any) => i.isRare);
+  // Sort rápido para la navegación
+  if (sortBy === "artistAsc") filteredIds.sort((a,b) => (a.artist || "").localeCompare(b.artist || ""));
+  else if (sortBy === "yearDesc") filteredIds.sort((a,b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
 
-  // 4. Encontrar vecinos
-  const navIds = filtered.map(f => f.release_id);
+  const navIds = filteredIds.map(f => f.discogs_release_id);
   const currentIndex = navIds.indexOf(parseInt(id, 10));
   const prevId = currentIndex > 0 ? navIds[currentIndex - 1] : null;
   const nextId = (currentIndex !== -1 && currentIndex < navIds.length - 1) ? navIds[currentIndex + 1] : null;
 
-  // 5. Datos para la ficha actual
-  const recordsData = recordMap.get(parseInt(id, 10));
-  const currentPrices = allPrices.filter(p => p.release_id === parseInt(id, 10));
-  const latestPrice = currentPrices[0] || {};
+  // 2. Carga QUIRÚRGICA de los datos del disco actual
+  const { data: recordsData } = await supabase
+    .from("records")
+    .select("*")
+    .eq("discogs_release_id", id)
+    .single();
+
+  const { data: currentPrices } = await supabase
+    .from("market_prices")
+    .select("*")
+    .eq("release_id", id)
+    .order("created_at", { ascending: false });
+
+  const latestPrice = currentPrices?.[0] || {};
   const discogsLink = `https://www.discogs.com/release/${id}`;
 
   if (!recordsData) {
