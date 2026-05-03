@@ -209,7 +209,7 @@ export default async function ReleasePage({
         <div className={styles.priceCard}>
           <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
           <div className={styles.priceValue}>
-            {latestPrice.lowest_price ? formatEuro(latestPrice.lowest_price) : "N/A"}
+            {formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}
           </div>
         </div>
       </div>

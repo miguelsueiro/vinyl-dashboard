@@ -4,39 +4,58 @@ import { useMemo, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
-  const [range, setRange] = useState<"1M" | "1Y" | "ALL">("ALL");
-
-  const filteredSnapshots = useMemo(() => {
-    if (!snapshots) return [];
-    
-    // 1. Agrupar por día (solo el último snapshot de cada día)
-    const dailyMap = new Map();
-    snapshots.forEach(s => {
-      const dateKey = new Date(s.created_at).toISOString().split('T')[0];
-      dailyMap.set(dateKey, s);
-    });
-    const uniqueDays = Array.from(dailyMap.values());
-
-    if (range === "ALL") return uniqueDays;
-
-    const now = new Date();
-    const cutoff = new Date();
-    if (range === "1M") cutoff.setMonth(now.getMonth() - 1);
-    if (range === "1Y") cutoff.setFullYear(now.getFullYear() - 1);
-
-    return uniqueDays.filter(s => new Date(s.created_at) >= cutoff);
-  }, [snapshots, range]);
+  const [range, setRange] = useState<"1M" | "1Y" | "ALL" | "CUSTOM">("1M");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   const chartData = useMemo(() => {
-    return filteredSnapshots.map((s) => ({
+    if (!snapshots || snapshots.length === 0) return [];
+
+    let filtered = [...snapshots];
+    const now = new Date();
+
+    if (range === "1M") {
+      const cutoff = new Date();
+      cutoff.setMonth(now.getMonth() - 1);
+      filtered = snapshots.filter(s => new Date(s.created_at) >= cutoff);
+    } else if (range === "1Y") {
+      const cutoff = new Date();
+      cutoff.setFullYear(now.getFullYear() - 1);
+      filtered = snapshots.filter(s => new Date(s.created_at) >= cutoff);
+    } else if (range === "CUSTOM" && customStart) {
+      const start = new Date(customStart);
+      const end = customEnd ? new Date(customEnd) : new Date();
+      filtered = snapshots.filter(s => {
+        const d = new Date(s.created_at);
+        return d >= start && d <= end;
+      });
+    }
+
+    // AGRUPACIÓN SEGÚN EL RANGO
+    const grouped = new Map();
+    filtered.forEach(s => {
+      const d = new Date(s.created_at);
+      let key = "";
+      if (range === "1M" || (range === "CUSTOM" && filtered.length < 60)) {
+        key = d.toISOString().split('T')[0]; // Por día
+      } else if (range === "1Y" || (range === "CUSTOM" && filtered.length < 730)) {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; // Por mes
+      } else {
+        key = `${d.getFullYear()}`; // Por año
+      }
+      grouped.set(key, s); // Guardamos el último valor de ese periodo
+    });
+
+    return Array.from(grouped.values()).map(s => ({
       date: new Date(s.created_at).toLocaleDateString("es-ES", { 
-        day: '2-digit',
-        month: 'short'
+        day: (range === "1M" || range === "CUSTOM") ? '2-digit' : undefined,
+        month: 'short',
+        year: range === "ALL" ? 'numeric' : undefined
       }),
       fullDate: new Date(s.created_at).toLocaleDateString("es-ES", { day: '2-digit', month: 'long', year: 'numeric' }),
       value: Number(s.total_value.toFixed(2)),
     }));
-  }, [filteredSnapshots]);
+  }, [snapshots, range, customStart, customEnd]);
 
   const currencyFormatter = new Intl.NumberFormat("es-ES", {
     style: "currency",
@@ -46,40 +65,50 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
   });
 
   if (chartData.length === 0 && snapshots.length > 0) {
-    // Show a message if no data in range
     return (
-      <div style={{ padding: 20, textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 16 }}>
+      <div style={{ padding: 40, textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 28, color: 'rgba(255,255,255,0.4)' }}>
         No hay datos para este periodo.
       </div>
     );
   }
 
   return (
-    <div style={{ width: "100%", height: 340, background: "rgba(255,255,255,0.02)", borderRadius: 28, padding: "28px 32px", marginBottom: 48, border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+    <div style={{ width: "100%", minHeight: 400, background: "rgba(255,255,255,0.02)", borderRadius: 28, padding: "28px 32px", marginBottom: 48, border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 32 }}>
         <h3 style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}>
           Evolución de la Colección
         </h3>
-        <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.04)', padding: 6, borderRadius: 14 }}>
-          {(["1M", "1Y", "ALL"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 10,
-                border: 'none',
-                background: range === r ? '#fff' : 'transparent',
-                color: range === r ? '#000' : 'rgba(255,255,255,0.5)',
-                fontSize: 10,
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-            >
-              {r === "1M" ? "MES" : r === "1Y" ? "AÑO" : "TOTAL"}
-            </button>
-          ))}
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+          {range === "CUSTOM" && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginRight: 12 }}>
+              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 11 }} />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>-</span>
+              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 11 }} />
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', padding: 4, borderRadius: 12 }}>
+            {(["1M", "1Y", "ALL", "CUSTOM"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: range === r ? '#fff' : 'transparent',
+                  color: range === r ? '#000' : 'rgba(255,255,255,0.5)',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {r === "1M" ? "MES" : r === "1Y" ? "AÑO" : r === "ALL" ? "TOTAL" : "FILTRO"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       
