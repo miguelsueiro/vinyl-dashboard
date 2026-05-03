@@ -216,3 +216,4 @@ export default async function ReleasePage({
       </div>
     </div>
   );
+}
