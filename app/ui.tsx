@@ -31,9 +31,9 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   const [sortBy, setSortBy] = useState<"priceDesc" | "priceAsc" | "artistAsc" | "yearDesc">("priceDesc");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const recordMap = useMemo(() => new Map(records.map((r: any) => [r.discogs_release_id, r])), [records]);
+  const recordMap = useMemo(() => new Map(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
   const enriched = useMemo(() => latestPrices.map((p: any) => {
-    const record = recordMap.get(p.release_id);
+    const record = recordMap.get(Number(p.release_id));
     let price = p.median_price || p.lowest_price || 0;
     if (!price) {
       const past = historicalPrices.filter((h: any) => h.release_id === p.release_id && (h.median_price || h.lowest_price));
