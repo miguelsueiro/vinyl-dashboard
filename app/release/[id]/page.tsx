@@ -101,7 +101,10 @@ export default async function ReleasePage({
     Object.entries(sp).forEach(([key, value]) => {
       if (value) params.set(key, value.toString());
     });
-    return `/release/${newId}${params.toString() ? `?${params.toString()}` : ""  return (
+    return `/release/${newId}${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  return (
     <div className={styles.releaseRoot}>
       <div className={styles.navRow}>
         <Link href={`/${new URLSearchParams(sp as any).toString() ? `?${new URLSearchParams(sp as any).toString()}` : ""}`} className={styles.backBtn}>
