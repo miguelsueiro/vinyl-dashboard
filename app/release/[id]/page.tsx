@@ -101,10 +101,7 @@ export default async function ReleasePage({
     Object.entries(sp).forEach(([key, value]) => {
       if (value) params.set(key, value.toString());
     });
-    return `/release/${newId}${params.toString() ? `?${params.toString()}` : ""}`;
-  };
-
-  return (
+    return `/release/${newId}${params.toString() ? `?${params.toString()}` : ""  return (
     <div className={styles.releaseRoot}>
       <div className={styles.navRow}>
         <Link href={`/${new URLSearchParams(sp as any).toString() ? `?${new URLSearchParams(sp as any).toString()}` : ""}`} className={styles.backBtn}>
@@ -128,31 +125,49 @@ export default async function ReleasePage({
         </div>
       </div>
       
-      <div className={styles.topSection}>
-        <div className={styles.coverBox}>
-          {recordsData.cover_image ? (
-            <img src={recordsData.cover_image} alt={recordsData.title} className={styles.coverImage} />
-          ) : (
-            <div className={styles.coverPlaceholder}>
-              <IconVinyl className={styles.placeholderIcon} />
-              <span className={styles.placeholderText}>Sin Portada</span>
-            </div>
-          )}
+      <div className={styles.mainLayout}>
+        <div className={styles.coverSection}>
+          <div className={styles.coverBox}>
+            {recordsData.cover_image ? (
+              <img src={recordsData.cover_image} alt={recordsData.title} className={styles.coverImage} />
+            ) : (
+              <div className={styles.coverPlaceholder}>
+                <IconVinyl className={styles.placeholderIcon} />
+                <span className={styles.placeholderText}>Sin Portada</span>
+              </div>
+            )}
+          </div>
+          
+          <div className={styles.mobileInfo}>
+             <div className={styles.artist}>{recordsData.artist}</div>
+             <h1 className={styles.title}>{recordsData.title}</h1>
+          </div>
         </div>
 
-        <div className={styles.infoBox}>
-          <header className={styles.header}>
-            <div className={styles.artist}>{recordsData.artist || "Unknown Artist"}</div>
-            <h1 className={styles.title}>{recordsData.title || `Release #${id}`}</h1>
+        <div className={styles.sidebarSection}>
+          <div className={styles.infoGlassCard}>
+            <div className={styles.desktopHeader}>
+              <div className={styles.artist}>{recordsData.artist}</div>
+              <h1 className={styles.title}>{recordsData.title}</h1>
+            </div>
+
             <div className={styles.tags}>
               {recordsData.year && <Link href={`/?year=${encodeURIComponent(recordsData.year)}`} className={styles.tag}>{recordsData.year}</Link>}
               {recordsData.label && <Link href={`/?label=${encodeURIComponent(recordsData.label)}`} className={styles.tag}>{recordsData.label}</Link>}
               {recordsData.genre && <Link href={`/?genre=${encodeURIComponent(recordsData.genre)}`} className={styles.tag}>{recordsData.genre}</Link>}
-              {recordsData.style && <Link href={`/?style=${encodeURIComponent(recordsData.style)}`} className={styles.tag}>{recordsData.style}</Link>}
               {recordsData.format && <span className={styles.tag}>{recordsData.format}</span>}
             </div>
 
-            <StreamingSection id={id} initialUrl={recordsData.streaming_url} />
+            <div className={styles.mainPriceSection}>
+              <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
+              <div className={styles.priceValue}>
+                {formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}
+              </div>
+            </div>
+
+            <div className={styles.streamingWrapper}>
+               <StreamingSection id={id} initialUrl={recordsData.streaming_url} />
+            </div>
 
             <div className={styles.conditionsBox}>
               <div className={styles.conditionRow}>
@@ -166,34 +181,35 @@ export default async function ReleasePage({
             <a href={discogsLink} target="_blank" rel="noreferrer" className={styles.discogsLink}>
               Ver en Discogs ↗
             </a>
-          </header>
-        </div>
-      </div>
 
-      <div className={styles.priceGrid}>
-        <div className={styles.priceCard}>
-          <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
-          <div className={styles.priceValue}>
-            {formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}
+            {currentPrices && currentPrices.length > 0 && (
+              <div className={styles.historySection}>
+                <h2 className={styles.historyTitle}>Historial de Mercado</h2>
+                <div className={styles.historyList}>
+                  {(() => {
+                    const dailyHistory = new Map();
+                    [...currentPrices].reverse().forEach(p => {
+                      const dateKey = new Date(p.created_at).toISOString().split('T')[0];
+                      dailyHistory.set(dateKey, p);
+                    });
+                    
+                    return Array.from(dailyHistory.values())
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .slice(0, 5) // Mostrar los últimos 5 para no saturar
+                      .map((p: any) => (
+                        <div key={p.id} className={styles.historyItem}>
+                          <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
+                          <span className={styles.historyPrice}>
+                            {formatEuro(p.median_price || p.lowest_price)}
+                          </span>
+                        </div>
+                      ));
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {currentPrices && currentPrices.length > 0 && (
-        <div className={styles.history}>
-          <h2 className={styles.historyTitle}>Historial de Mercado</h2>
-          <ul className={styles.historyList}>
-            {currentPrices.map((p: any) => (
-              <li key={p.id} className={styles.historyItem}>
-                <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
-                <span className={styles.historyPrice}>
-                  {formatEuro(p.median_price || p.lowest_price)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
-}
