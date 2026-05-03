@@ -9,16 +9,33 @@ export default async function Home() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Fetch data in parallel for maximum speed
-  const [recordsResponse, pricesResponse, snapshotsResponse] = await Promise.all([
-    supabase.from("records").select("*"),
-    supabase.from("market_prices").select("*").order("created_at", { ascending: false }),
+  // Fetch ALL data using pagination loops to overcome the 1000 row limit
+  const fetchAll = async (table: string, orderCol?: string) => {
+    let all: any[] = [];
+    let fetched = 1000;
+    let offset = 0;
+    while (fetched === 1000) {
+      let query = supabase.from(table).select("*").range(offset, offset + 999);
+      if (orderCol) query = query.order(orderCol, { ascending: false });
+      const { data } = await query;
+      if (data && data.length > 0) {
+        all = all.concat(data);
+        fetched = data.length;
+        offset += 1000;
+      } else {
+        fetched = 0;
+      }
+    }
+    return all;
+  };
+
+  const [allRecords, allPrices, snapshotsRes] = await Promise.all([
+    fetchAll("records"),
+    fetchAll("market_prices", "created_at"),
     supabase.from("collection_snapshots").select("*").order("created_at", { ascending: true })
   ]);
 
-  const allRecords = recordsResponse.data || [];
-  const allPrices = pricesResponse.data || [];
-  const snapshots = snapshotsResponse.data || [];
+  const snapshots = snapshotsRes.data || [];
 
   // Deduplicate prices server-side to get the latest price per release
   const latestPricesMap = new Map();
