@@ -287,7 +287,9 @@
   background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   padding: 24px 32px;
-  max-width: 400px;
+  max-width: 440px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .priceLabel {
@@ -305,15 +307,16 @@
 }
 
 .history {
-  margin-top: 40px;
+  margin: 60px auto 0;
   max-width: 500px;
 }
 
 .historyTitle {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   color: rgba(255,255,255,0.5);
+  text-align: center;
 }
 
 .historyList {

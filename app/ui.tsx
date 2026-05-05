@@ -72,7 +72,10 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     let rawFormat = item.record?.format?.toLowerCase() || "";
     let itemFormatGroup = "Vinilo";
     if (rawFormat.includes("cd")) itemFormatGroup = "CD";
-    if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
+    else if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
+    else if (rawFormat.includes("lp") || rawFormat.includes("12\"")) itemFormatGroup = "LP";
+    else if (rawFormat.includes("10\"")) itemFormatGroup = "10\"";
+    else if (rawFormat.includes("7\"")) itemFormatGroup = "7\"";
     
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
   });
@@ -126,7 +129,13 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
       </div>
       <div className={styles.filterGroup}>
         <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
-          <option value="all">Formato</option><option value="Vinilo">Vinilo</option><option value="CD">CD</option>
+          <option value="all">Formato</option>
+          <option value="LP">LP</option>
+          <option value="10\"">10"</option>
+          <option value="7\"">7"</option>
+          <option value="CD">CD</option>
+          <option value="Cassette">Cassette</option>
+          <option value="Vinilo">Otros Vinilos</option>
         </select>
         <select value={genre} onChange={(e) => setGenre(e.target.value)} className={styles.select}>
           <option value="">Género...</option>
