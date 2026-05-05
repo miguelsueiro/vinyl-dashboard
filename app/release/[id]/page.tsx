@@ -148,7 +148,9 @@ export default async function ReleasePage({
               {recordsData.year && <Link href={`/?year=${encodeURIComponent(recordsData.year)}`} className={styles.tag}>{recordsData.year}</Link>}
               {recordsData.label && <Link href={`/?label=${encodeURIComponent(recordsData.label)}`} className={styles.tag}>{recordsData.label}</Link>}
               {recordsData.genre && <Link href={`/?genre=${encodeURIComponent(recordsData.genre)}`} className={styles.tag}>{recordsData.genre}</Link>}
-              {recordsData.format && <span className={styles.tag}>{recordsData.format}</span>}
+              {recordsData.format && recordsData.format.split(",").map((f: string) => f.trim()).filter(Boolean).map((f: string) => (
+                <span key={f} className={styles.tag}>{f}</span>
+              ))}
             </div>
 
             <StreamingSection id={id} initialUrl={recordsData.streaming_url} />

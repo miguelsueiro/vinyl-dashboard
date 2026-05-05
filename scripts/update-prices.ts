@@ -39,28 +39,25 @@ async function runUpdate() {
     // Comparar e insertar nuevos
     for (const release of discogsReleases) {
       const releaseId = release.id;
+      const info = release.basic_information;
+      const notes = release.notes || [];
       const { data: existing } = await supabase.from("records").select("id").eq("discogs_release_id", releaseId).single();
-      
+
+      const guessCondition = (notes: any[]) => {
+        const conditionKeywords = ["VG", "NM", "Mint", "Near Mint", "Very Good", "G+", "Fair", "Poor"];
+        let media = notes.find((n: any) => n.field_id === 1)?.value;
+        let sleeve = notes.find((n: any) => n.field_id === 2)?.value;
+        if (!media) {
+          const found = notes.find((n: any) => conditionKeywords.some(k => n.value?.includes(k)));
+          media = found?.value;
+        }
+        return { media: media || "Desconocido", sleeve: sleeve || "Desconocido" };
+      };
+
+      const fullFormat = [info.formats?.[0]?.name, ...(info.formats?.[0]?.descriptions || [])].filter(Boolean).join(", ");
+
       if (!existing) {
-        console.log(`✨ New release found: ${release.basic_information.artist} - ${release.basic_information.title}`);
-        const info = release.basic_information;
-        const notes = release.notes || [];
-        
-        // Función para adivinar si una nota es una condición de disco
-        const guessCondition = (notes: any[]) => {
-          const conditionKeywords = ["VG", "NM", "Mint", "Near Mint", "Very Good", "G+", "Fair", "Poor"];
-          // Primero intentamos por field_id (1=Media, 2=Sleeve habitualmente)
-          let media = notes.find((n: any) => n.field_id === 1)?.value;
-          let sleeve = notes.find((n: any) => n.field_id === 2)?.value;
-
-          // Si no los encontramos por ID, buscamos en todos los campos cualquier valor que se parezca a una condición
-          if (!media) {
-            const found = notes.find((n: any) => conditionKeywords.some(k => n.value?.includes(k)));
-            media = found?.value;
-          }
-          return { media: media || "Desconocido", sleeve: sleeve || "Desconocido" };
-        };
-
+        console.log(`✨ New release found: ${info.artists?.[0]?.name} - ${info.title}`);
         const { media: vinylCond, sleeve: sleeveCond } = guessCondition(notes);
 
         await supabase.from("records").insert({
@@ -71,11 +68,16 @@ async function runUpdate() {
           label: info.labels?.[0]?.name,
           genre: info.genres?.[0],
           style: info.styles?.[0],
-          format: info.formats?.[0]?.name,
+          format: fullFormat,
           cover_image: info.cover_image,
           condition_vinyl: vinylCond,
           condition_sleeve: sleeveCond
         });
+      } else {
+        // Actualizar el formato de discos existentes (backfill)
+        await supabase.from("records")
+          .update({ format: fullFormat })
+          .eq("discogs_release_id", releaseId);
       }
     }
   } catch (err) {
