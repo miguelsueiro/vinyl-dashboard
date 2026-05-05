@@ -34,15 +34,12 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   const recordMap = useMemo(() => new Map(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
-    let price = p.median_price || p.lowest_price || 0;
-    if (!price) {
-      const past = historicalPrices.filter((h: any) => h.release_id === p.release_id && (h.median_price || h.lowest_price));
-      if (past.length > 0) price = past[0].median_price || past[0].lowest_price;
-    }
+    const price = p.median_price || p.lowest_price || 0;
     return { ...p, record, price, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
-  }), [latestPrices, recordMap, historicalPrices]);
+  }), [latestPrices, recordMap]);
 
-  const totalValue = enriched.reduce((sum: number, item: any) => sum + item.price, 0);
+  const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+  const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);
   const sortedByPriceItems = [...enriched].sort((a: any, b: any) => b.price - a.price);
   const maxPriceItem = sortedByPriceItems.length > 0 ? sortedByPriceItems[0] : null;
   const maxPrice = maxPriceItem ? maxPriceItem.price : 0;
