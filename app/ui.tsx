@@ -73,9 +73,9 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     let itemFormatGroup = "Vinilo";
     if (rawFormat.includes("cd")) itemFormatGroup = "CD";
     else if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
-    else if (rawFormat.includes("lp") || rawFormat.includes("12\"")) itemFormatGroup = "LP";
-    else if (rawFormat.includes("10\"")) itemFormatGroup = "10\"";
-    else if (rawFormat.includes("7\"")) itemFormatGroup = "7\"";
+    else if (rawFormat.includes("lp") || rawFormat.includes("12")) itemFormatGroup = "LP";
+    else if (rawFormat.includes("10")) itemFormatGroup = "10in";
+    else if (rawFormat.includes("7")) itemFormatGroup = "7in";
     
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
   });
@@ -131,8 +131,8 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
         <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
           <option value="all">Formato</option>
           <option value="LP">LP</option>
-          <option value="10\"">10"</option>
-          <option value="7\"">7"</option>
+          <option value="10in">10&quot;</option>
+          <option value="7in">7&quot;</option>
           <option value="CD">CD</option>
           <option value="Cassette">Cassette</option>
           <option value="Vinilo">Otros Vinilos</option>
