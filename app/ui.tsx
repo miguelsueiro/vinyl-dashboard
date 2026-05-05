@@ -73,9 +73,9 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     let itemFormatGroup = "Vinilo";
     if (rawFormat.includes("cd")) itemFormatGroup = "CD";
     else if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
-    else if (rawFormat.includes("lp") || rawFormat.includes("12")) itemFormatGroup = "LP";
-    else if (rawFormat.includes("10")) itemFormatGroup = "10in";
-    else if (rawFormat.includes("7")) itemFormatGroup = "7in";
+    else if (rawFormat.includes('lp') || rawFormat.includes('12"')) itemFormatGroup = "LP";
+    else if (rawFormat.includes('10"')) itemFormatGroup = "10in";
+    else if (rawFormat.includes('7"')) itemFormatGroup = "7in";
     
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
   });
