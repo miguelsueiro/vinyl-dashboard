@@ -1,3 +1,7 @@
+import { createClient } from "@supabase/supabase-js";
+import Link from "next/link";
+import styles from "./release.module.css";
+import StreamingSection from "./streaming-section";
 import { 
   IconVinyl, IconChevronLeft, IconChevronRight, 
   IconArrowUp, IconArrowDown, IconMinus 
