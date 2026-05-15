@@ -54,12 +54,12 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   // 📈 CÁLCULO DE TENDENCIAS
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
-    const price = p.median_price || p.lowest_price || 0;
+    // Redondear a 2 decimales para evitar micro-variaciones de Discogs
+    const price = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
     
-    // Buscar el precio anterior real (distinto al actual si es posible, o simplemente el segundo más reciente)
     const history = historicalPrices.filter((h: any) => h.release_id === p.release_id);
     const prevEntry = history.length > 1 ? history[1] : null;
-    const prevPrice = prevEntry ? (prevEntry.median_price || prevEntry.lowest_price || 0) : price;
+    const prevPrice = Math.round((prevEntry ? (prevEntry.median_price || prevEntry.lowest_price || 0) : price) * 100) / 100;
     
     let trend = "stable";
     if (price > prevPrice) trend = "up";

@@ -22,14 +22,11 @@ export default async function ReleasePage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // ... (mismo código de navegación y carga de datos hasta currentPrices)
-  
-  // Obtenemos solo los IDs para navegar sin cargar 1300+ objetos completos
+  // 1. Obtener navegación
   const { data: navData } = await supabase
     .from("records")
     .select("discogs_release_id, artist, title, year, genre, style, label, format");
 
-  // Aplicamos la misma lógica de filtrado que en la home pero en memoria
   let filteredIds = (navData || []).filter((r: any) => {
     const q = (sp.search as string || "").toLowerCase();
     const matchSearch = r.artist?.toLowerCase().includes(q) || r.title?.toLowerCase().includes(q) || r.discogs_release_id.toString().includes(q);
@@ -46,7 +43,6 @@ export default async function ReleasePage({
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (!sp.format || sp.format === "all" || itemFormatGroup === sp.format);
   });
 
-  // Sort rápido para la navegación
   const sortBy = (sp.sort as string) || "priceDesc";
   if (sortBy === "artistAsc") filteredIds.sort((a,b) => (a.artist || "").localeCompare(b.artist || ""));
   else if (sortBy === "yearDesc") filteredIds.sort((a,b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
@@ -56,6 +52,7 @@ export default async function ReleasePage({
   const prevId = currentIndex > 0 ? navIds[currentIndex - 1] : null;
   const nextId = (currentIndex !== -1 && currentIndex < navIds.length - 1) ? navIds[currentIndex + 1] : null;
 
+  // 2. Cargar datos del disco
   const { data: recordsData } = await supabase
     .from("records")
     .select("*")
@@ -68,24 +65,32 @@ export default async function ReleasePage({
     .eq("release_id", id)
     .order("created_at", { ascending: false });
 
-  const latestPrice = currentPrices?.[0] || {};
-  const prevPriceEntry = currentPrices?.find(p => (p.median_price || p.lowest_price) !== (latestPrice.median_price || latestPrice.lowest_price)) || currentPrices?.[1];
-  const prevPrice = prevPriceEntry ? (prevPriceEntry.median_price || prevPriceEntry.lowest_price) : (latestPrice.median_price || latestPrice.lowest_price);
-  
-  let trend = "stable";
-  if ((latestPrice.median_price || latestPrice.lowest_price) > prevPrice) trend = "up";
-  else if ((latestPrice.median_price || latestPrice.lowest_price) < prevPrice) trend = "down";
-
-  const discogsLink = `https://www.discogs.com/release/${id}`;
-
   if (!recordsData) {
     return (
       <div className={styles.releaseRoot}>
-        <h2>Disco no encontrado</h2>
-        <Link href="/" className={styles.backBtn}>← Volver</Link>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h2>Disco no encontrado</h2>
+          <Link href="/" className={styles.backBtn} style={{ marginTop: 20 }}>← Volver</Link>
+        </div>
       </div>
     );
   }
+
+  const latestPrice = currentPrices?.[0] || {};
+  const currentPriceVal = Math.round((latestPrice.median_price || latestPrice.lowest_price || 0) * 100) / 100;
+
+  const prevPriceEntry = currentPrices?.find(p => {
+    const pVal = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
+    return pVal !== currentPriceVal;
+  }) || currentPrices?.[1];
+  
+  const prevPrice = Math.round((prevPriceEntry ? (prevPriceEntry.median_price || prevPriceEntry.lowest_price) : currentPriceVal) * 100) / 100;
+  
+  let trend = "stable";
+  if (currentPriceVal > prevPrice) trend = "up";
+  else if (currentPriceVal < prevPrice) trend = "down";
+
+  const discogsLink = `https://www.discogs.com/release/${id}`;
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Fecha desconocida";
@@ -175,13 +180,13 @@ export default async function ReleasePage({
         <div className={styles.priceCard}>
           <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
           <div className={styles.priceValue}>
-            <span>{formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}</span>
+            <span>{formatEuro(currentPriceVal)}</span>
             <div className={styles.trendContainer}>
               <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
                 {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
                 {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
                 {trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs((latestPrice.median_price || latestPrice.lowest_price) - prevPrice))}</span>
+                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
               </div>
               {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
             </div>
@@ -194,39 +199,35 @@ export default async function ReleasePage({
           <h2 className={styles.historyTitle}>Historial de Variaciones</h2>
           <ul className={styles.historyList}>
             {(() => {
-              // Agrupado inteligente: Solo mostrar si el precio cambió
               const displayedEntries: any[] = [];
-              let lastDisplayedPrice = -1;
+              let lastPrice = -1;
 
               [...currentPrices].reverse().forEach((p, index) => {
-                const currentPrice = p.median_price || p.lowest_price;
-                // Siempre mostramos el primero, el último, y cualquier cambio intermedio
-                if (index === 0 || index === currentPrices.length - 1 || currentPrice !== lastDisplayedPrice) {
+                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
+                if (index === 0 || index === currentPrices.length - 1 || pVal !== lastPrice) {
                   displayedEntries.push(p);
-                  lastDisplayedPrice = currentPrice;
+                  lastPrice = pVal;
                 }
               });
 
               return displayedEntries.reverse().map((p: any, i: number) => {
-                const currentPrice = p.median_price || p.lowest_price;
+                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
                 const nextEntry = i < displayedEntries.length - 1 ? displayedEntries[i+1] : null;
-                const nextPrice = nextEntry ? (nextEntry.median_price || nextEntry.lowest_price) : currentPrice;
+                const nextPrice = nextEntry ? Math.round((nextEntry.median_price || nextEntry.lowest_price) * 100) / 100 : pVal;
                 
                 let itemTrend = "stable";
-                if (currentPrice > nextPrice) itemTrend = "up";
-                else if (currentPrice < nextPrice) itemTrend = "down";
+                if (pVal > nextPrice) itemTrend = "up";
+                else if (pVal < nextPrice) itemTrend = "down";
 
                 return (
                   <li key={p.id} className={styles.historyItem}>
                     <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
-                    <span className={`${styles.historyPrice} ${styles["trend" + itemTrend.charAt(0).toUpperCase() + itemTrend.slice(1)]}`} style={{ background: 'transparent', padding: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className={`${styles.trendIndicator} ${styles["trend" + itemTrend.charAt(0).toUpperCase() + itemTrend.slice(1)]}`} style={{ padding: '6px 12px' }}>
                          {itemTrend === "up" && <IconArrowUp className={styles.trendIcon} />}
                          {itemTrend === "down" && <IconArrowDown className={styles.trendIcon} />}
                          {itemTrend === "stable" && i < displayedEntries.length - 1 && <IconMinus className={styles.trendIcon} />}
-                         {formatEuro(currentPrice)}
-                      </div>
-                    </span>
+                         <span style={{ fontWeight: 'bold' }}>{formatEuro(pVal)}</span>
+                    </div>
                   </li>
                 );
               });
