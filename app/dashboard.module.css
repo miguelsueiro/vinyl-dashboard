@@ -301,6 +301,30 @@
   font-weight: 800;
   color: #1ED760;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.trendIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trendUp { color: #1ED760; background: rgba(30, 215, 96, 0.1); }
+.trendDown { color: #ff4d4d; background: rgba(255, 77, 77, 0.1); }
+.trendStable { color: rgba(255,255,255,0.4); }
+
+.trendIcon {
+  width: 12px !important;
+  height: 12px !important;
 }
 
 /* TABS */
@@ -440,7 +464,7 @@
 
 .insightsRanking {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 32px;
   margin-top: 48px;
 }

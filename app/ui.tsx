@@ -10,14 +10,32 @@ import GenreChart from "./genre-chart";
 import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
 import { 
-  IconVinyl, IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose 
+  IconVinyl, IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose,
+  IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 
 function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: any) {
   const searchParams = useSearchParams();
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  
+  // 🔄 RESTAURACIÓN DE SCROLL
+  useEffect(() => {
+    setMounted(true);
+    const savedScroll = sessionStorage.getItem("dashboardScroll");
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: "instant" });
+      }, 100);
+    }
+
+    const handleScroll = () => {
+      sessionStorage.setItem("dashboardScroll", window.scrollY.toString());
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<"collection" | "analytics" | "random">("collection");
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -32,11 +50,23 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const recordMap = useMemo(() => new Map(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
+  
+  // 📈 CÁLCULO DE TENDENCIAS
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
     const price = p.median_price || p.lowest_price || 0;
-    return { ...p, record, price, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
-  }), [latestPrices, recordMap]);
+    
+    // Buscar el precio anterior real (distinto al actual si es posible, o simplemente el segundo más reciente)
+    const history = historicalPrices.filter((h: any) => h.release_id === p.release_id);
+    const prevEntry = history.length > 1 ? history[1] : null;
+    const prevPrice = prevEntry ? (prevEntry.median_price || prevEntry.lowest_price || 0) : price;
+    
+    let trend = "stable";
+    if (price > prevPrice) trend = "up";
+    else if (price < prevPrice) trend = "down";
+
+    return { ...p, record, price, prevPrice, trend, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
+  }), [latestPrices, recordMap, historicalPrices]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);
@@ -218,14 +248,22 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
                 <div className={styles.cardInfo}>
                   <div className={styles.recordArtist}>{item.record?.artist}</div>
                   <div className={styles.recordTitle}>{item.record?.title}</div>
-                  <div className={styles.recordPrice}>{formatEuro(item.price)}</div>
+                  <div className={styles.recordPrice}>
+                    <span>{formatEuro(item.price)}</span>
+                    <div className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}>
+                      {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                      {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                      {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
+                      <span>{item.prevPrice > 0 ? formatEuro(item.prevPrice) : "--"}</span>
+                    </div>
+                  </div>
                 </div>
               </a>
             ))}
           </div>
         </>
       ) : activeTab === "analytics" ? (
-        <AnalyticsView latestPrices={latestPrices} records={records} />
+        <AnalyticsView latestPrices={latestPrices} records={records} enriched={enriched} />
       ) : (
         <RandomView records={records} latestPrices={latestPrices} />
       )}

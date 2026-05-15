@@ -79,3 +79,23 @@ export const IconChevronRight = (props: any) => (
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
+
+export const IconArrowUp = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width={ICON_SIZE} height={ICON_SIZE} {...props}>
+    <line x1="12" y1="19" x2="12" y2="5" />
+    <polyline points="5 12 12 5 19 12" />
+  </svg>
+);
+
+export const IconArrowDown = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width={ICON_SIZE} height={ICON_SIZE} {...props}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <polyline points="19 12 12 19 5 12" />
+  </svg>
+);
+
+export const IconMinus = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width={ICON_SIZE} height={ICON_SIZE} {...props}>
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);

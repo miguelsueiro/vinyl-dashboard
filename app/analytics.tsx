@@ -7,14 +7,24 @@ import {
   PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, Legend 
 } from "recharts";
 import StyleChart from "./genre-chart";
-import { IconStar, IconEuro } from "@/components/icons";
+import { IconStar, IconEuro, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 
-export default function AnalyticsView({ latestPrices, records }: any) {
+export default function AnalyticsView({ latestPrices, records, enriched }: any) {
   
   const formatEuro = (val: number) => 
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(val);
 
-  // 📊 DATA: Histograma de Precios
+  // 📈 DATA: Últimas Variaciones (solo los que han cambiado)
+  const latestChanges = useMemo(() => {
+    return (enriched || [])
+      .filter((item: any) => item.trend !== "stable")
+      .sort((a: any, b: any) => {
+        // Ordenar por magnitud de cambio absoluto o simplemente por fecha si tuviéramos date_updated
+        return Math.abs(b.price - b.prevPrice) - Math.abs(a.price - a.prevPrice);
+      })
+      .slice(0, 5);
+  }, [enriched]);
+
   const histogramData = useMemo(() => {
     const bins = [
       { name: "0-20€", min: 0, max: 20 },
@@ -121,6 +131,27 @@ export default function AnalyticsView({ latestPrices, records }: any) {
       </div>
 
       <div className={styles.insightsRanking}>
+          <div className={styles.rankingColumn}>
+            <h3 className={styles.analyticTitle}><IconArrowUp className={styles.titleIcon} style={{ color: '#1ED760' }} /> Variaciones Recientes</h3>
+            {latestChanges.length > 0 ? latestChanges.map((item: any) => (
+              <div key={item.id} className={styles.rankingItem}>
+                <div className={styles.rankIndex}>
+                   {item.trend === "up" ? <IconArrowUp style={{ color: '#1ED760' }} /> : <IconArrowDown style={{ color: '#ff4d4d' }} />}
+                </div>
+                <div className={styles.rankInfo}>
+                  <div className={styles.rankName}>{item.record?.artist} - {item.record?.title}</div>
+                  <div className={styles.rankPrice}>
+                    {formatEuro(item.prevPrice)} → <span style={{ color: item.trend === "up" ? '#1ED760' : '#ff4d4d', fontWeight: 'bold' }}>{formatEuro(item.price)}</span>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>
+                No hay cambios recientes detectados
+              </div>
+            )}
+          </div>
+
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconEuro className={styles.titleIcon} /> Top 5 Valor Individual</h3>
             {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p: any, i: number) => {

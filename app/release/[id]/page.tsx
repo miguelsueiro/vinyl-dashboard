@@ -1,8 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
-import styles from "./release.module.css";
-import StreamingSection from "./streaming-section";
-import { IconVinyl, IconChevronLeft, IconChevronRight } from "@/components/icons";
+import { 
+  IconVinyl, IconChevronLeft, IconChevronRight, 
+  IconArrowUp, IconArrowDown, IconMinus 
+} from "@/components/icons";
 
 export default async function ReleasePage({ 
   params, 
@@ -19,17 +18,8 @@ export default async function ReleasePage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. Obtener solo los IDs necesarios para la navegación (MUCHO más rápido)
-  // Replicamos los filtros pero solo pedimos la columna de ID
-  const search = (sp.search as string) || "";
-  const genre = (sp.genre as string) || "";
-  const styleFilter = (sp.style as string) || "";
-  const year = (sp.year as string) || "";
-  const labelFilter = (sp.label as string) || "";
-  const formatFilter = (sp.format as string) || "all";
-  const sortBy = (sp.sort as string) || "priceDesc";
-  const viewMode = (sp.view as string) || "all";
-
+  // ... (mismo código de navegación y carga de datos hasta currentPrices)
+  
   // Obtenemos solo los IDs para navegar sin cargar 1300+ objetos completos
   const { data: navData } = await supabase
     .from("records")
@@ -37,22 +27,23 @@ export default async function ReleasePage({
 
   // Aplicamos la misma lógica de filtrado que en la home pero en memoria
   let filteredIds = (navData || []).filter((r: any) => {
-    const q = search.toLowerCase();
+    const q = (sp.search as string || "").toLowerCase();
     const matchSearch = r.artist?.toLowerCase().includes(q) || r.title?.toLowerCase().includes(q) || r.discogs_release_id.toString().includes(q);
-    const matchGenre = !genre || r.genre?.toLowerCase().includes(genre.trim().toLowerCase());
-    const matchStyle = !styleFilter || r.style?.toLowerCase().includes(styleFilter.trim().toLowerCase());
-    const matchYear = !year || String(r.year) === year.trim();
-    const matchLabel = !labelFilter || r.label?.toLowerCase().includes(labelFilter.trim().toLowerCase());
+    const matchGenre = !sp.genre || r.genre?.toLowerCase().includes((sp.genre as string).trim().toLowerCase());
+    const matchStyle = !sp.style || r.style?.toLowerCase().includes((sp.style as string).trim().toLowerCase());
+    const matchYear = !sp.year || String(r.year) === (sp.year as string).trim();
+    const matchLabel = !sp.label || r.label?.toLowerCase().includes((sp.label as string).trim().toLowerCase());
     
     let rawFormat = r.format?.toLowerCase() || "";
     let itemFormatGroup = "Vinilo";
     if (rawFormat.includes("cd")) itemFormatGroup = "CD";
     if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
     
-    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
+    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (!sp.format || sp.format === "all" || itemFormatGroup === sp.format);
   });
 
   // Sort rápido para la navegación
+  const sortBy = (sp.sort as string) || "priceDesc";
   if (sortBy === "artistAsc") filteredIds.sort((a,b) => (a.artist || "").localeCompare(b.artist || ""));
   else if (sortBy === "yearDesc") filteredIds.sort((a,b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
 
@@ -61,7 +52,6 @@ export default async function ReleasePage({
   const prevId = currentIndex > 0 ? navIds[currentIndex - 1] : null;
   const nextId = (currentIndex !== -1 && currentIndex < navIds.length - 1) ? navIds[currentIndex + 1] : null;
 
-  // 2. Carga QUIRÚRGICA de los datos del disco actual
   const { data: recordsData } = await supabase
     .from("records")
     .select("*")
@@ -75,6 +65,13 @@ export default async function ReleasePage({
     .order("created_at", { ascending: false });
 
   const latestPrice = currentPrices?.[0] || {};
+  const prevPriceEntry = currentPrices?.find(p => (p.median_price || p.lowest_price) !== (latestPrice.median_price || latestPrice.lowest_price)) || currentPrices?.[1];
+  const prevPrice = prevPriceEntry ? (prevPriceEntry.median_price || prevPriceEntry.lowest_price) : (latestPrice.median_price || latestPrice.lowest_price);
+  
+  let trend = "stable";
+  if ((latestPrice.median_price || latestPrice.lowest_price) > prevPrice) trend = "up";
+  else if ((latestPrice.median_price || latestPrice.lowest_price) < prevPrice) trend = "down";
+
   const discogsLink = `https://www.discogs.com/release/${id}`;
 
   if (!recordsData) {
@@ -95,7 +92,6 @@ export default async function ReleasePage({
     return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
   };
 
-  // Helper para mantener los filtros en los links de navegación
   const getNavUrl = (newId: any) => {
     const params = new URLSearchParams();
     Object.entries(sp).forEach(([key, value]) => {
@@ -175,32 +171,61 @@ export default async function ReleasePage({
         <div className={styles.priceCard}>
           <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
           <div className={styles.priceValue}>
-            {formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}
+            <span>{formatEuro(latestPrice.median_price || latestPrice.lowest_price || 0)}</span>
+            <div className={styles.trendContainer}>
+              <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
+                {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                {trend === "stable" && <IconMinus className={styles.trendIcon} />}
+                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs((latestPrice.median_price || latestPrice.lowest_price) - prevPrice))}</span>
+              </div>
+              {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
+            </div>
           </div>
         </div>
       </div>
 
       {currentPrices && currentPrices.length > 0 && (
         <div className={styles.history}>
-          <h2 className={styles.historyTitle}>Historial de Mercado</h2>
+          <h2 className={styles.historyTitle}>Historial de Variaciones</h2>
           <ul className={styles.historyList}>
             {(() => {
-              const dailyHistory = new Map();
-              [...currentPrices].reverse().forEach(p => {
-                const dateKey = new Date(p.created_at).toISOString().split('T')[0];
-                dailyHistory.set(dateKey, p);
+              // Agrupado inteligente: Solo mostrar si el precio cambió
+              const displayedEntries: any[] = [];
+              let lastDisplayedPrice = -1;
+
+              [...currentPrices].reverse().forEach((p, index) => {
+                const currentPrice = p.median_price || p.lowest_price;
+                // Siempre mostramos el primero, el último, y cualquier cambio intermedio
+                if (index === 0 || index === currentPrices.length - 1 || currentPrice !== lastDisplayedPrice) {
+                  displayedEntries.push(p);
+                  lastDisplayedPrice = currentPrice;
+                }
               });
-              
-              return Array.from(dailyHistory.values())
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((p: any) => (
+
+              return displayedEntries.reverse().map((p: any, i: number) => {
+                const currentPrice = p.median_price || p.lowest_price;
+                const nextEntry = i < displayedEntries.length - 1 ? displayedEntries[i+1] : null;
+                const nextPrice = nextEntry ? (nextEntry.median_price || nextEntry.lowest_price) : currentPrice;
+                
+                let itemTrend = "stable";
+                if (currentPrice > nextPrice) itemTrend = "up";
+                else if (currentPrice < nextPrice) itemTrend = "down";
+
+                return (
                   <li key={p.id} className={styles.historyItem}>
                     <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
-                    <span className={styles.historyPrice}>
-                      {formatEuro(p.median_price || p.lowest_price)}
+                    <span className={`${styles.historyPrice} ${styles["trend" + itemTrend.charAt(0).toUpperCase() + itemTrend.slice(1)]}`} style={{ background: 'transparent', padding: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         {itemTrend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                         {itemTrend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                         {itemTrend === "stable" && i < displayedEntries.length - 1 && <IconMinus className={styles.trendIcon} />}
+                         {formatEuro(currentPrice)}
+                      </div>
                     </span>
                   </li>
-                ));
+                );
+              });
             })()}
           </ul>
         </div>

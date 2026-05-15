@@ -304,6 +304,42 @@
   font-size: 40px;
   font-weight: 800;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.trendContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.prevPrice {
+  font-size: 14px;
+  color: rgba(255,255,255,0.3);
+  font-weight: 500;
+}
+
+.trendIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.trendUp { color: #1ED760; background: rgba(30, 215, 96, 0.1); }
+.trendDown { color: #ff4d4d; background: rgba(255, 77, 77, 0.1); }
+.trendStable { color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+
+.trendIcon {
+  width: 12px !important;
+  height: 12px !important;
 }
 
 .history {
