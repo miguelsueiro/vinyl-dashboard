@@ -12,6 +12,8 @@ import { IconStar, IconEuro, IconArrowUp, IconArrowDown, IconMinus } from "@/com
 export default function AnalyticsView({ latestPrices, records, enriched }: any) {
   
   const formatEuro = (val: number) => 
+    new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(val);
+
   // 📈 DATA: Últimas Variaciones (solo los que han cambiado)
   const latestChanges = useMemo(() => {
     return (enriched || [])
