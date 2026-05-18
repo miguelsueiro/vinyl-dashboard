@@ -478,10 +478,19 @@
 
 .rankingItem {
   display: flex;
-  padding: 16px 0;
+  padding: 16px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   align-items: center;
   gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.rankingItem:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
 }
 
 .rankIndex {

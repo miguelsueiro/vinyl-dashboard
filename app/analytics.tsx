@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo } from "react";
 import styles from "./dashboard.module.css";
 import { 
@@ -137,13 +139,13 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
             {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p: any, i: number) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
-                <div key={p.id} className={styles.rankingItem}>
+                <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}>{i+1}</span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
                     <div className={styles.rankPrice}>{formatEuro(p.median_price || p.lowest_price)}</div>
                   </div>
-                </div>
+                </Link>
               );
             })}
          </div>
@@ -157,13 +159,13 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
             }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p: any, i: number) => {
               const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
               return (
-                <div key={p.id} className={styles.rankingItem}>
+                <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}><IconStar className={styles.rankStar} /></span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
                     <div className={styles.rankPrice}>Score: {p.rareScore.toFixed(1)}</div>
                   </div>
-                </div>
+                </Link>
               );
             })}
          </div>
@@ -173,7 +175,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
         <h3 className={styles.analyticTitle}><IconArrowUp className={styles.titleIcon} style={{ color: '#1ED760' }} /> Todas las Variaciones Recientes</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {latestChanges.length > 0 ? latestChanges.map((item: any) => (
-            <div key={item.id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 0' }}>
+            <Link href={`/release/${item.release_id}`} key={item.id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px' }}>
               <div className={styles.rankIndex} style={{ width: '40px' }}>
                  {item.trend === "up" ? <IconArrowUp style={{ color: '#1ED760', width: '16px' }} /> : <IconArrowDown style={{ color: '#ff4d4d', width: '16px' }} />}
               </div>
@@ -183,7 +185,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
                   {formatEuroPrecise(item.prevPrice)} → <span style={{ color: item.trend === "up" ? '#1ED760' : '#ff4d4d', fontWeight: 'bold' }}>{formatEuroPrecise(item.price)}</span>
                 </div>
               </div>
-            </div>
+            </Link>
           )) : (
             <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', gridColumn: '1 / -1' }}>
               No se han detectado variaciones en la última sincronización
