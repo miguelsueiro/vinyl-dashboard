@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import ClientDashboard from "./ui";
 
-export const dynamic = 'force-dynamic';
+
 
 export default async function Home() {
   const supabase = createClient(

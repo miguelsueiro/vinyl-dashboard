@@ -265,6 +265,23 @@ async function runUpdate() {
   if (snapError) console.error("❌ Error saving snapshot:", snapError);
   else console.log("✅ Snapshot saved.");
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  try {
+    console.log("🔄 Triggering on-demand cache revalidation...");
+    const revalRes = await fetch(`${appUrl}/api/revalidate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: supabaseKey })
+    });
+    if (revalRes.ok) {
+      console.log("✅ Cache successfully purged.");
+    } else {
+      console.warn("⚠️ Failed to purge cache:", revalRes.status);
+    }
+  } catch (err) {
+    console.warn("⚠️ Could not reach revalidation endpoint:", err);
+  }
+
   console.log("\n--- 🏁 MISSION SUMMARY ---");
   console.log(`📦 Total Records:    ${statsSummary.total}`);
   console.log(`✅ Real Medians:    ${statsSummary.success}`);
@@ -272,5 +289,6 @@ async function runUpdate() {
   console.log(`❓ No Data (0€):    ${statsSummary.noData}`);
   console.log("---------------------------\n");
 }
+
 
 runUpdate();
