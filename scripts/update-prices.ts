@@ -55,10 +55,10 @@ async function runUpdate() {
       };
 
       const fullFormat = [info.formats?.[0]?.name, ...(info.formats?.[0]?.descriptions || [])].filter(Boolean).join(", ");
+      const { media: vinylCond, sleeve: sleeveCond } = guessCondition(notes);
 
       if (!existing) {
         console.log(`✨ New release found: ${info.artists?.[0]?.name} - ${info.title}`);
-        const { media: vinylCond, sleeve: sleeveCond } = guessCondition(notes);
 
         await supabase.from("records").insert({
           discogs_release_id: releaseId,
@@ -74,9 +74,13 @@ async function runUpdate() {
           condition_sleeve: sleeveCond
         });
       } else {
-        // Actualizar el formato de discos existentes (backfill)
+        // Actualizar el formato y las condiciones de discos existentes (por si se editan en Discogs)
         await supabase.from("records")
-          .update({ format: fullFormat })
+          .update({ 
+            format: fullFormat,
+            condition_vinyl: vinylCond,
+            condition_sleeve: sleeveCond
+          })
           .eq("discogs_release_id", releaseId);
       }
     }
