@@ -209,6 +209,19 @@ async function runUpdate() {
             currency: currency
           });
 
+      // Upsert into latest_prices table for fast look‑up
+      const { error: upsertError } = await supabase
+        .from('latest_prices')
+        .upsert({
+          release_id: releaseId.toString(),
+          median_price: medianPrice,
+          lowest_price: lowestPrice,
+          num_for_sale: numForSale,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'release_id' });
+
+      if (upsertError) console.warn('⚠️ Upsert latest_prices error:', upsertError);
+
         if (insertError) {
           console.error(`  ❌ Supabase insert error:`, insertError);
         } else {
