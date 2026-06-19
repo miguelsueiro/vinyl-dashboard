@@ -57,7 +57,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     // Redondear a 2 decimales para evitar micro-variaciones de Discogs
     const price = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
     
-    const history = historicalPrices.filter((h: any) => h.release_id === p.release_id);
+    const history = historicalPrices.filter((h: any) => Number(h.release_id) === Number(p.release_id));
     const prevEntry = history.length > 1 ? history[1] : null;
     const prevPrice = Math.round((prevEntry ? (prevEntry.median_price || prevEntry.lowest_price || 0) : price) * 100) / 100;
     

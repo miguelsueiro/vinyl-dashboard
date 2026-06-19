@@ -49,7 +49,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
   const styleValueData = useMemo(() => {
     const values: Record<string, number> = {};
     latestPrices.forEach((p: any) => {
-      const record = records.find((r: any) => r.discogs_release_id === p.release_id);
+      const record = records.find((r: any) => Number(r.discogs_release_id) === Number(p.release_id));
       const style = record?.style?.split(",")[0] || "Otros";
       const price = p.median_price || p.lowest_price || 0;
       values[style] = (values[style] || 0) + price;
@@ -63,7 +63,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
   // 🧭 DATA: Scatter Plot (Precio vs Escasez/Stock)
   const scatterData = useMemo(() => {
     return latestPrices.map((p: any) => {
-      const record = records.find((r: any) => r.discogs_release_id === p.release_id);
+      const record = records.find((r: any) => Number(r.discogs_release_id) === Number(p.release_id));
       return {
         x: p.num_for_sale || 0,
         y: p.median_price || p.lowest_price || 0,
@@ -137,7 +137,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconEuro className={styles.titleIcon} /> Top 5 Valor Individual</h3>
             {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p: any, i: number) => {
-              const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
+              const r = records.find((rec: any) => Number(rec.discogs_release_id) === Number(p.release_id));
               return (
                 <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}>{i+1}</span>
@@ -157,7 +157,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
               const stock = p.num_for_sale || 1;
               return { ...p, rareScore: price / (stock + 0.5) };
             }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p: any, i: number) => {
-              const r = records.find((rec: any) => rec.discogs_release_id === p.release_id);
+              const r = records.find((rec: any) => Number(rec.discogs_release_id) === Number(p.release_id));
               return (
                 <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}><IconStar className={styles.rankStar} /></span>
