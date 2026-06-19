@@ -33,8 +33,17 @@ export default async function Home() {
     supabase.from("collection_snapshots").select("*").order("created_at", { ascending: true })
   ]);
 
+  if (latestPricesRes.error) {
+    console.error("❌ Error fetching latest_prices:", latestPricesRes.error);
+  }
+  if (snapshotsRes.error) {
+    console.error("❌ Error fetching snapshots:", snapshotsRes.error);
+  }
+
   const latestPrices = latestPricesRes.data || [];
   const snapshots = snapshotsRes.data || [];
+
+  console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}`);
 
   return (
     <ClientDashboard
