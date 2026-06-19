@@ -107,12 +107,14 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
 
     let matchCondition = true;
     if (conditionFilter === "__unknown__") {
-      matchCondition = !item.record?.condition_vinyl && !item.record?.condition_sleeve;
+      const isUnknownVinyl = !item.record?.condition_vinyl || item.record.condition_vinyl === "Desconocido";
+      const isUnknownSleeve = !item.record?.condition_sleeve || item.record.condition_sleeve === "Desconocido";
+      matchCondition = isUnknownVinyl && isUnknownSleeve;
     } else if (conditionFilter) {
       const cond = conditionFilter.toLowerCase();
-      matchCondition =
-        item.record?.condition_vinyl?.toLowerCase().includes(cond) ||
-        item.record?.condition_sleeve?.toLowerCase().includes(cond);
+      const vinylMatch = item.record?.condition_vinyl?.toLowerCase() === cond;
+      const sleeveMatch = item.record?.condition_sleeve?.toLowerCase() === cond;
+      matchCondition = vinylMatch || sleeveMatch;
     }
     
     return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter) && matchCondition;
@@ -193,14 +195,14 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
         </select>
         <select value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
           <option value="">Estado...</option>
-          <option value="Mint">Mint (M)</option>
-          <option value="Near Mint">Near Mint (NM)</option>
-          <option value="Very Good Plus">Very Good Plus (VG+)</option>
-          <option value="Very Good">Very Good (VG)</option>
-          <option value="Good Plus">Good Plus (G+)</option>
-          <option value="Good">Good (G)</option>
-          <option value="Fair">Fair (F)</option>
-          <option value="Poor">Poor (P)</option>
+          <option value="Mint (M)">Mint (M)</option>
+          <option value="Near Mint (NM or M-)">Near Mint (NM)</option>
+          <option value="Very Good Plus (VG+)">Very Good Plus (VG+)</option>
+          <option value="Very Good (VG)">Very Good (VG)</option>
+          <option value="Good Plus (G+)">Good Plus (G+)</option>
+          <option value="Good (G)">Good (G)</option>
+          <option value="Fair (F)">Fair (F)</option>
+          <option value="Poor (P)">Poor (P)</option>
           <option value="__unknown__">Sin datos en Discogs</option>
         </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={styles.select}>
