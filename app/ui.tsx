@@ -45,6 +45,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   const [year, setYear] = useState(searchParams.get("year") || "");
   const [labelFilter, setLabelFilter] = useState(searchParams.get("label") || "");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [conditionFilter, setConditionFilter] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "top10" | "rarezas">("all");
   const [sortBy, setSortBy] = useState<"priceDesc" | "priceAsc" | "artistAsc" | "yearDesc">("priceDesc");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -103,8 +104,18 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     else if (rawFormat.includes('lp') || rawFormat.includes('12"')) itemFormatGroup = "LP";
     else if (rawFormat.includes('10"')) itemFormatGroup = "10in";
     else if (rawFormat.includes('7"')) itemFormatGroup = "7in";
+
+    let matchCondition = true;
+    if (conditionFilter === "__unknown__") {
+      matchCondition = !item.record?.condition_vinyl && !item.record?.condition_sleeve;
+    } else if (conditionFilter) {
+      const cond = conditionFilter.toLowerCase();
+      matchCondition =
+        item.record?.condition_vinyl?.toLowerCase().includes(cond) ||
+        item.record?.condition_sleeve?.toLowerCase().includes(cond);
+    }
     
-    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter);
+    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter) && matchCondition;
   });
 
   let displayData = filtered;
@@ -120,7 +131,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
   const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
   const filteredTotalValue = displayData.reduce((sum: number, item: any) => sum + item.price, 0);
   const clearFilters = () => {
-    setSearch(""); setGenre(""); setStyleFilter(""); setYear(""); setLabelFilter(""); setFormatFilter("all"); setSortBy("priceDesc"); setViewMode("all");
+    setSearch(""); setGenre(""); setStyleFilter(""); setYear(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
   };
 
   const tabs = (
@@ -179,6 +190,18 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
         <select value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)} className={styles.select}>
           <option value="">Sello...</option>
           {labelsList.map((l: any) => <option key={l} value={l}>{l}</option>)}
+        </select>
+        <select value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
+          <option value="">Estado...</option>
+          <option value="Mint">Mint (M)</option>
+          <option value="Near Mint">Near Mint (NM)</option>
+          <option value="Very Good Plus">Very Good Plus (VG+)</option>
+          <option value="Very Good">Very Good (VG)</option>
+          <option value="Good Plus">Good Plus (G+)</option>
+          <option value="Good">Good (G)</option>
+          <option value="Fair">Fair (F)</option>
+          <option value="Poor">Poor (P)</option>
+          <option value="__unknown__">Sin datos en Discogs</option>
         </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={styles.select}>
           <option value="priceDesc">Mayor precio</option><option value="priceAsc">Menor precio</option><option value="artistAsc">A-Z</option><option value="yearDesc">Más reciente</option>
