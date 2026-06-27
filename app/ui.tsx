@@ -85,6 +85,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
     return data;
   }, [enriched, sortBy]);
   
+  const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
   const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
   const stylesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.style).filter(Boolean))).sort(), [records]);
   const years = useMemo(() => Array.from(new Set(records.map((r: any) => String(r.year)).filter((y: string) => y && y !== "null" && y !== "0"))).sort(), [records]);
@@ -163,7 +164,17 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
       <div className={styles.searchRow}>
         <div className={styles.inputWrapper}>
           <IconSearch className={styles.inputIcon} />
-          <input placeholder="Buscar disco o artista..." value={search} onChange={(e) => setSearch(e.target.value)} className={styles.inputSearch} />
+          <input 
+            placeholder="Buscar disco o artista..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            className={styles.inputSearch} 
+            list="home-artists-list"
+            autoComplete="off"
+          />
+          <datalist id="home-artists-list">
+            {artists.map((a: string) => <option key={a} value={a} />)}
+          </datalist>
         </div>
         <button onClick={clearFilters} className={styles.clearFiltersBtn}>
           <IconClose className={styles.btnIcon} /> Limpiar

@@ -48,6 +48,7 @@ export default function SmartFoldersView({
   const [saving, setSaving] = useState(false);
 
   // Extract select option values dynamically from records
+  const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
   const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
   const stylesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.style).filter(Boolean))).sort(), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
@@ -361,7 +362,12 @@ export default function SmartFoldersView({
                     value={artistRule}
                     onChange={(e) => setArtistRule(e.target.value)}
                     className={styles.modalInput}
+                    list="sf-artists-list"
+                    autoComplete="off"
                   />
+                  <datalist id="sf-artists-list">
+                    {artists.map(a => <option key={a} value={a} />)}
+                  </datalist>
                 </div>
                 <div className={styles.formGroup}>
                   <label>Sello Discográfico</label>
