@@ -9,12 +9,13 @@ import InvestmentChart from "./investment-chart";
 import GenreChart from "./genre-chart";
 import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
+import SmartFoldersView from "./smart-folders";
 import { 
   IconVinyl, IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose,
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 
-function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: any) {
+function DashboardInner({ latestPrices, historicalPrices, records, snapshots, initialSmartFolders }: any) {
   const searchParams = useSearchParams();
 
   const [mounted, setMounted] = useState(false);
@@ -37,7 +38,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"collection" | "analytics" | "random">("collection");
+  const [activeTab, setActiveTab] = useState<"collection" | "analytics" | "random" | "folders">("collection");
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState(searchParams.get("genre") || "");
@@ -150,6 +151,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
           </button>
         )}
         <button className={`${styles.tabBtn} ${activeTab === "collection" ? styles.active : ""}`} onClick={() => { setActiveTab("collection"); setIsMenuOpen(false); }}>Colección</button>
+        <button className={`${styles.tabBtn} ${activeTab === "folders" ? styles.active : ""}`} onClick={() => { setActiveTab("folders"); setIsMenuOpen(false); }}>Carpetas</button>
         <button className={`${styles.tabBtn} ${activeTab === "analytics" ? styles.active : ""}`} onClick={() => { setActiveTab("analytics"); setIsMenuOpen(false); }}>Insights</button>
         <button className={`${styles.tabBtn} ${activeTab === "random" ? styles.active : ""}`} onClick={() => { setActiveTab("random"); setIsMenuOpen(false); }}>Randomize</button>
       </div>
@@ -287,6 +289,8 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots }: 
             ))}
           </div>
         </>
+      ) : activeTab === "folders" ? (
+        <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} />
       ) : activeTab === "analytics" ? (
         <AnalyticsView latestPrices={latestPrices} records={records} enriched={enriched} />
       ) : (

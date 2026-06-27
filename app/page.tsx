@@ -43,16 +43,18 @@ export default async function Home() {
     ];
   };
 
-  const [allRecords, latestPrices, snapshotsRes, recentMarketPrices] = await Promise.all([
+  const [allRecords, latestPrices, snapshotsRes, recentMarketPrices, smartFoldersRes] = await Promise.all([
     fetchAll("records"),
     fetchAll("latest_prices"),
     supabase.from("collection_snapshots").select("*").order("created_at", { ascending: true }),
-    fetchRecentMarketPrices()
+    fetchRecentMarketPrices(),
+    supabase.from("smart_folders").select("*").order("created_at", { ascending: true })
   ]);
 
   const snapshots = snapshotsRes.data || [];
+  const smartFolders = smartFoldersRes.data || [];
 
-  console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Hist Prices: ${recentMarketPrices.length}`);
+  console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Hist Prices: ${recentMarketPrices.length}, Smart Folders: ${smartFolders.length}`);
 
   return (
     <ClientDashboard
@@ -60,6 +62,7 @@ export default async function Home() {
       historicalPrices={recentMarketPrices}
       records={allRecords}
       snapshots={snapshots}
+      initialSmartFolders={smartFolders}
     />
   );
 }
