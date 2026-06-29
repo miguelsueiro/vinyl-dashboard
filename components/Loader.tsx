@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import styles from "./loader.module.css";
 
 const QUOTES = [
@@ -105,9 +106,13 @@ const QUOTES = [
   { text: "Remain vulnerable.", author: "Leonard Cohen" },
 ];
 
-const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-
 export default function LoadingVinyl() {
+  const [quote, setQuote] = useState<{text: string, author: string} | null>(null);
+
+  useEffect(() => {
+    setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  }, []);
+
   return (
     <div className={styles.loaderOverlay}>
       <div className={styles.vinylContainer}>
@@ -120,8 +125,14 @@ export default function LoadingVinyl() {
         </svg>
       </div>
       <div className={styles.quoteBlock}>
-        <p className={styles.quoteText}>"{quote.text}"</p>
-        <p className={styles.quoteAuthor}>— {quote.author}</p>
+        {quote ? (
+          <>
+            <p className={styles.quoteText}>"{quote.text}"</p>
+            <p className={styles.quoteAuthor}>— {quote.author}</p>
+          </>
+        ) : (
+          <p className={styles.quoteText} style={{ opacity: 0 }}>Cargando...</p>
+        )}
       </div>
     </div>
   );
