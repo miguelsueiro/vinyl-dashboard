@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     while (fetchedCount === 1000) {
       const { data, error } = await supabase
         .from("records")
-        .select("discogs_release_id")
+        .select("discogs_release_id, condition_vinyl")
         .range(offset, offset + 999);
       
       if (error) throw error;
@@ -47,38 +47,67 @@ export async function GET(request: Request) {
 
     console.log(`Actualizando precios para ${allRecords.length} discos...`);
 
+    const getConditionMultiplier = (condition: string | null) => {
+      if (!condition) return 1.0;
+      if (condition.includes("Mint (M)")) return 3.0;
+      if (condition.includes("Near Mint") || condition.includes("NM") || condition.includes("M-")) return 2.5;
+      if (condition.includes("Very Good Plus") || condition.includes("VG+")) return 2.0;
+      if (condition.includes("Very Good") || condition.includes("VG")) return 1.5;
+      return 1.0; // Good, Fair, Poor
+    };
+
     // 2. Actualización de precios en Discogs (por lotes para no saturar)
-    // Usamos batches para no exceder los límites de memoria o timeout
     const results = [];
     const batchSize = 10; 
     for (let i = 0; i < allRecords.length; i += batchSize) {
       const batch = allRecords.slice(i, i + batchSize);
       const batchPromises = batch.map(async (record) => {
         const releaseId = record.discogs_release_id;
+        const condition = record.condition_vinyl || "Very Good Plus (VG+)"; // Default fallback
         try {
+          // 1. Get real lowest price
           const response = await fetch(`https://api.discogs.com/releases/${releaseId}`, {
-            headers: {
-              "Authorization": `Discogs token=${discogsToken}`,
-              "User-Agent": "VinylIntelligence/1.0"
-            },
+            headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligence/1.1" },
             next: { revalidate: 0 }
           });
-
-          if (!response.ok) return { id: releaseId, success: false };
-
-          const releaseData = await response.json();
           
-          // Discogs doesn't include marketplace_stats anymore, lowest_price is at the root
-          const lowestPrice = releaseData.lowest_price;
-          const numForSale = releaseData.num_for_sale;
+          if (!response.ok) return { id: releaseId, success: false };
+          const releaseData = await response.json();
+          const lowestPrice = releaseData.lowest_price || 0;
+          const numForSale = releaseData.num_for_sale || 0;
+
+          // 2. Get price suggestions for median calculation
+          let finalMedianPrice = lowestPrice; 
+          try {
+             const suggestRes = await fetch(`https://api.discogs.com/marketplace/price_suggestions/${releaseId}`, {
+               headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligence/1.1" }
+             });
+             if (suggestRes.ok) {
+                const suggestData = await suggestRes.json();
+                // Detect the fake algorithmic curves (Discogs returns exact algorithmic caps for rare items)
+                const mintValue = suggestData["Mint (M)"]?.value || 0;
+                const isFakeCurve = Math.abs(mintValue - 120.175) < 0.1 || Math.abs(mintValue - 107.525) < 0.1;
+                
+                if (isFakeCurve) {
+                   // Apply multiplier to real lowest price
+                   const multiplier = getConditionMultiplier(condition);
+                   finalMedianPrice = lowestPrice * multiplier;
+                } else {
+                   // Use real suggestion matched to condition, fallback to VG+
+                   finalMedianPrice = suggestData[condition]?.value || suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM or M-)"]?.value || lowestPrice;
+                }
+             }
+          } catch (err) {
+            // Ignore suggestions error and just use lowestPrice
+          }
 
           const { error: insertError } = await supabase
             .from("market_prices")
             .insert({
               release_id: releaseId.toString(),
-              lowest_price: lowestPrice || 0,
-              median_price: null, // We stop storing fake median suggestions
-              num_for_sale: numForSale || 0,
+              lowest_price: lowestPrice,
+              median_price: finalMedianPrice,
+              num_for_sale: numForSale,
               currency: "EUR"
             });
 
