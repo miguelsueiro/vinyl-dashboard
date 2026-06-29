@@ -56,8 +56,8 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   // 📈 CÁLCULO DE TENDENCIAS
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
-    // Redondear a 2 decimales para evitar micro-variaciones de Discogs
-    const price = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
+    // Redondear a 2 decimales para evitar micro-variaciones de Discogs. Priorizamos lowest_price (real) frente a median (estimado).
+    const price = Math.round((p.lowest_price || p.median_price || 0) * 100) / 100;
     
     const history = historicalPrices.filter((h: any) => Number(h.release_id) === Number(p.release_id));
     const prevEntry = history.length > 1 ? history[1] : null;

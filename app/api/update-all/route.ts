@@ -67,17 +67,19 @@ export async function GET(request: Request) {
           if (!response.ok) return { id: releaseId, success: false };
 
           const releaseData = await response.json();
-          const stats = releaseData.marketplace_stats;
-          if (!stats) return { id: releaseId, success: false };
+          
+          // Discogs doesn't include marketplace_stats anymore, lowest_price is at the root
+          const lowestPrice = releaseData.lowest_price;
+          const numForSale = releaseData.num_for_sale;
 
           const { error: insertError } = await supabase
             .from("market_prices")
             .insert({
               release_id: releaseId.toString(),
-              lowest_price: stats.lowest_price?.value || 0,
-              median_price: stats.median_price?.value || 0,
-              num_for_sale: stats.num_for_sale || 0,
-              currency: stats.lowest_price?.currency || "EUR"
+              lowest_price: lowestPrice || 0,
+              median_price: null, // We stop storing fake median suggestions
+              num_for_sale: numForSale || 0,
+              currency: "EUR"
             });
 
           return { id: releaseId, success: !insertError };
