@@ -191,66 +191,6 @@ export default async function ReleasePage({
         </div>
       </div>
 
-      <div className={styles.priceGrid}>
-        <div className={styles.priceCard}>
-          <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
-          <div className={styles.priceValue}>
-            <span>{formatEuro(currentPriceVal)}</span>
-            <div className={styles.trendContainer}>
-              <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
-                {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                {trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
-              </div>
-              {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {currentPrices && currentPrices.length > 0 && (
-        <div className={styles.history}>
-          <h2 className={styles.historyTitle}>Historial de Variaciones</h2>
-          <ul className={styles.historyList}>
-            {(() => {
-              const displayedEntries: any[] = [];
-              let lastPrice = -1;
-
-              [...currentPrices].reverse().forEach((p, index) => {
-                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
-                if (index === 0 || index === currentPrices.length - 1 || pVal !== lastPrice) {
-                  displayedEntries.push(p);
-                  lastPrice = pVal;
-                }
-              });
-
-              return displayedEntries.reverse().map((p: any, i: number) => {
-                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
-                const nextEntry = i < displayedEntries.length - 1 ? displayedEntries[i+1] : null;
-                const nextPrice = nextEntry ? Math.round((nextEntry.median_price || nextEntry.lowest_price) * 100) / 100 : pVal;
-                
-                let itemTrend = "stable";
-                if (pVal > nextPrice) itemTrend = "up";
-                else if (pVal < nextPrice) itemTrend = "down";
-
-                return (
-                  <li key={p.id} className={styles.historyItem}>
-                    <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
-                    <div className={`${styles.trendIndicator} ${styles["trend" + itemTrend.charAt(0).toUpperCase() + itemTrend.slice(1)]}`} style={{ padding: '6px 12px' }}>
-                         {itemTrend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                         {itemTrend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                         {itemTrend === "stable" && i < displayedEntries.length - 1 && <IconMinus className={styles.trendIcon} />}
-                         <span style={{ fontWeight: 'bold' }}>{formatEuro(pVal)}</span>
-                    </div>
-                  </li>
-                );
-              });
-            })()}
-          </ul>
-        </div>
-      )}
-
       {/* DISCOGS EXTRA INFO */}
       {discogsRelease && (
         <div className={styles.extraInfo}>
@@ -329,6 +269,68 @@ export default async function ReleasePage({
           </div>
         </div>
       )}
+
+      <div className={styles.priceGrid}>
+        <div className={styles.priceCard}>
+          <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
+          <div className={styles.priceValue}>
+            <span>{formatEuro(currentPriceVal)}</span>
+            <div className={styles.trendContainer}>
+              <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
+                {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                {trend === "stable" && <IconMinus className={styles.trendIcon} />}
+                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
+              </div>
+              {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {currentPrices && currentPrices.length > 0 && (
+        <div className={styles.history}>
+          <h2 className={styles.historyTitle}>Historial de Variaciones</h2>
+          <ul className={styles.historyList}>
+            {(() => {
+              const displayedEntries: any[] = [];
+              let lastPrice = -1;
+
+              [...currentPrices].reverse().forEach((p, index) => {
+                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
+                if (index === 0 || index === currentPrices.length - 1 || pVal !== lastPrice) {
+                  displayedEntries.push(p);
+                  lastPrice = pVal;
+                }
+              });
+
+              return displayedEntries.reverse().map((p: any, i: number) => {
+                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
+                const nextEntry = i < displayedEntries.length - 1 ? displayedEntries[i+1] : null;
+                const nextPrice = nextEntry ? Math.round((nextEntry.median_price || nextEntry.lowest_price) * 100) / 100 : pVal;
+                
+                let itemTrend = "stable";
+                if (pVal > nextPrice) itemTrend = "up";
+                else if (pVal < nextPrice) itemTrend = "down";
+
+                return (
+                  <li key={p.id} className={styles.historyItem}>
+                    <span className={styles.historyDate}>{formatDate(p.created_at)}</span>
+                    <div className={`${styles.trendIndicator} ${styles["trend" + itemTrend.charAt(0).toUpperCase() + itemTrend.slice(1)]}`} style={{ padding: '6px 12px' }}>
+                         {itemTrend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                         {itemTrend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                         {itemTrend === "stable" && i < displayedEntries.length - 1 && <IconMinus className={styles.trendIcon} />}
+                         <span style={{ fontWeight: 'bold' }}>{formatEuro(pVal)}</span>
+                    </div>
+                  </li>
+                );
+              });
+            })()}
+          </ul>
+        </div>
+      )}
+
+
     </div>
   );
 }
