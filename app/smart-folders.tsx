@@ -17,6 +17,7 @@ interface SmartFolder {
     yearMax?: string;
     priceMin?: string;
     priceMax?: string;
+    country?: string;
   };
 }
 
@@ -44,6 +45,7 @@ export default function SmartFoldersView({
   const [yearMaxRule, setYearMaxRule] = useState("");
   const [priceMinRule, setPriceMinRule] = useState("");
   const [priceMaxRule, setPriceMaxRule] = useState("");
+  const [countryRule, setCountryRule] = useState("");
   
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +54,7 @@ export default function SmartFoldersView({
   const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
   const stylesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.style).filter(Boolean))).sort(), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
+  const countriesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.country).filter(Boolean))).sort() as string[], [records]);
 
   // Matching function to filter collection items by folder rules
   const getFolderItems = (folder: SmartFolder) => {
@@ -91,6 +94,11 @@ export default function SmartFoldersView({
       const itemPrice = item.price || 0;
       if (rules.priceMin && itemPrice < parseFloat(rules.priceMin)) return false;
       if (rules.priceMax && itemPrice > parseFloat(rules.priceMax)) return false;
+
+      // País rule
+      if (rules.country && !item.record?.country?.toLowerCase().includes(rules.country.toLowerCase())) {
+        return false;
+      }
       
       return true;
     });
@@ -123,6 +131,7 @@ export default function SmartFoldersView({
     setYearMaxRule("");
     setPriceMinRule("");
     setPriceMaxRule("");
+    setCountryRule("");
     setShowModal(true);
   };
 
@@ -138,6 +147,7 @@ export default function SmartFoldersView({
     setYearMaxRule(folder.rules.yearMax || "");
     setPriceMinRule(folder.rules.priceMin || "");
     setPriceMaxRule(folder.rules.priceMax || "");
+    setCountryRule(folder.rules.country || "");
     setShowModal(true);
   };
 
@@ -155,6 +165,7 @@ export default function SmartFoldersView({
       ...(yearMaxRule.trim() && { yearMax: yearMaxRule.trim() }),
       ...(priceMinRule.trim() && { priceMin: priceMinRule.trim() }),
       ...(priceMaxRule.trim() && { priceMax: priceMaxRule.trim() }),
+      ...(countryRule && { country: countryRule }),
     };
 
     if (editingFolder) {
@@ -227,6 +238,7 @@ export default function SmartFoldersView({
                   yearMax: "Año máx",
                   priceMin: "Precio mín",
                   priceMax: "Precio máx",
+                  country: "País",
                 };
                 return (
                   <span key={key} className={styles.ruleBadge}>
@@ -453,6 +465,21 @@ export default function SmartFoldersView({
                     className={styles.modalInput}
                   />
                 </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>País</label>
+                  <select
+                    value={countryRule}
+                    onChange={(e) => setCountryRule(e.target.value)}
+                    className={styles.modalSelect}
+                  >
+                    <option value="">Cualquier país...</option>
+                    {countriesList.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className={styles.formGroup} />
               </div>
 
               <div className={styles.modalFooter}>

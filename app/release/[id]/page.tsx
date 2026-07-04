@@ -257,15 +257,17 @@ export default async function ReleasePage({
                   </ul>
                 </div>
               )}
+            </div>
 
-              {/* NOTES */}
-              {discogsRelease.notes && (
+            {/* NOTES — third column on desktop */}
+            {discogsRelease.notes && (
+              <div className={styles.notesColumn}>
                 <div className={styles.extraSection}>
                   <h3 className={styles.extraTitle}>Notas</h3>
                   <p className={styles.notes}>{discogsRelease.notes}</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
