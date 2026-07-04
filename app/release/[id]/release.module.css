@@ -415,3 +415,194 @@
   }
 }
 
+
+/* ─── EXTRA INFO (DISCOGS DATA) ─────────────────── */
+
+.extraInfo {
+  margin-top: 60px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metaRow {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.metaItem {
+  flex: 1;
+  min-width: 140px;
+  padding: 20px 24px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+.metaItem:last-child {
+  border-right: none;
+}
+
+.metaLabel {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.metaValue {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.extraColumns {
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.extraSection {
+  margin-bottom: 40px;
+}
+
+.extraSection:last-child {
+  margin-bottom: 0;
+}
+
+.extraTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.35);
+  font-weight: 700;
+  margin: 0 0 20px;
+}
+
+/* Tracklist */
+.tracklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  min-width: 300px;
+  flex: 1;
+}
+
+.trackItem {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 14px;
+}
+
+.trackItem:last-child {
+  border-bottom: none;
+}
+
+.trackHeading {
+  color: rgba(255,255,255,0.35);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-top: 16px;
+  font-weight: 700;
+}
+
+.trackPos {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  min-width: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trackTitle {
+  flex: 1;
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+}
+
+.trackDur {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Credits + Notes side column */
+.extraRight {
+  flex: 0 0 320px;
+  min-width: 240px;
+}
+
+.creditsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.creditItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 13px;
+}
+
+.creditItem:last-child {
+  border-bottom: none;
+}
+
+.creditRole {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.3);
+  font-weight: 600;
+}
+
+.creditName {
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+
+.notes {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.5);
+  white-space: pre-line;
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .metaRow {
+    flex-direction: column;
+  }
+  .metaItem {
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .metaItem:last-child {
+    border-bottom: none;
+  }
+  .extraColumns {
+    flex-direction: column;
+    gap: 0;
+  }
+  .extraRight {
+    flex: none;
+    width: 100%;
+  }
+  .tracklist {
+    min-width: 0;
+  }
+}

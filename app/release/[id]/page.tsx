@@ -65,6 +65,21 @@ export default async function ReleasePage({
     .eq("release_id", id)
     .order("created_at", { ascending: false });
 
+  // Fetch extra data from Discogs API (SSR)
+  let discogsRelease: any = null;
+  try {
+    const discogsRes = await fetch(`https://api.discogs.com/releases/${id}`, {
+      headers: {
+        "Authorization": `Discogs token=${process.env.DISCOGS_TOKEN}`,
+        "User-Agent": "VinylIntelligence/1.1"
+      },
+      next: { revalidate: 3600 } // Cache for 1 hour
+    });
+    if (discogsRes.ok) discogsRelease = await discogsRes.json();
+  } catch (e) {
+    // silently fail
+  }
+
   if (!recordsData) {
     return (
       <div className={styles.releaseRoot}>
@@ -233,6 +248,85 @@ export default async function ReleasePage({
               });
             })()}
           </ul>
+        </div>
+      )}
+
+      {/* DISCOGS EXTRA INFO */}
+      {discogsRelease && (
+        <div className={styles.extraInfo}>
+
+          {/* METADATA ROW: Country, Released, Catalog */}
+          <div className={styles.metaRow}>
+            {discogsRelease.country && (
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>País</span>
+                <span className={styles.metaValue}>{discogsRelease.country}</span>
+              </div>
+            )}
+            {discogsRelease.released && (
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>Publicado</span>
+                <span className={styles.metaValue}>{discogsRelease.released}</span>
+              </div>
+            )}
+            {discogsRelease.labels?.[0]?.catno && (
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>Catálogo</span>
+                <span className={styles.metaValue}>{discogsRelease.labels[0].catno}</span>
+              </div>
+            )}
+            {discogsRelease.num_for_sale !== undefined && (
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>En venta en Discogs</span>
+                <span className={styles.metaValue}>{discogsRelease.num_for_sale} copias</span>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.extraColumns}>
+            {/* TRACKLIST */}
+            {discogsRelease.tracklist?.length > 0 && (
+              <div className={styles.extraSection}>
+                <h3 className={styles.extraTitle}>Tracklist</h3>
+                <ol className={styles.tracklist}>
+                  {discogsRelease.tracklist.map((track: any, i: number) => (
+                    <li key={i} className={`${styles.trackItem} ${track.type_ === 'heading' ? styles.trackHeading : ''}`}>
+                      {track.type_ !== 'heading' && (
+                        <span className={styles.trackPos}>{track.position || ''}</span>
+                      )}
+                      <span className={styles.trackTitle}>{track.title}</span>
+                      {track.duration && <span className={styles.trackDur}>{track.duration}</span>}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            <div className={styles.extraRight}>
+              {/* CREDITS */}
+              {discogsRelease.extraartists?.length > 0 && (
+                <div className={styles.extraSection}>
+                  <h3 className={styles.extraTitle}>Créditos</h3>
+                  <ul className={styles.creditsList}>
+                    {discogsRelease.extraartists.map((credit: any, i: number) => (
+                      <li key={i} className={styles.creditItem}>
+                        <span className={styles.creditRole}>{credit.role}</span>
+                        <span className={styles.creditName}>{credit.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* NOTES */}
+              {discogsRelease.notes && (
+                <div className={styles.extraSection}>
+                  <h3 className={styles.extraTitle}>Notas</h3>
+                  <p className={styles.notes}>{discogsRelease.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
