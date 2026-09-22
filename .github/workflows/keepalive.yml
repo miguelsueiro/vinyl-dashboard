@@ -1,0 +1,58 @@
+# Mantiene vivo el cron de precios.
+#
+# GitHub desactiva los workflows programados en repos que pasan 60 días sin
+# actividad. Pasó el 3 de septiembre de 2026 y dejó el dashboard congelado
+# diecinueve días: el último push era del 4 de julio.
+#
+# Este workflow hace un commit mínimo una vez al mes para que el contador nunca
+# llegue a 60. Solo commitea si de verdad hace falta: si has tocado el repo en
+# los últimos 25 días no escribe nada, así que en los meses activos no ensucia
+# el historial.
+#
+# Reactivar un workflow ya apagado sigue siendo manual (Actions → el workflow →
+# menú ··· → Enable workflow). Esto evita que llegue a apagarse, no lo revive.
+
+name: Mantener vivo el cron
+
+on:
+  schedule:
+    - cron: '0 4 1 * *' # día 1 de cada mes a las 04:00 UTC
+  workflow_dispatch: # para probarlo a mano
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: ¿Hace falta un latido?
+        id: check
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          dias=$(( ( $(date +%s) - ultimo ) / 86400 ))
+          echo "Último commit hace $dias días."
+          if [ "$dias" -ge 25 ]; then
+            echo "hace_falta=si" >> "$GITHUB_OUTPUT"
+            echo "Se registrará un latido."
+          else
+            echo "hace_falta=no" >> "$GITHUB_OUTPUT"
+            echo "El repo está activo, no hace falta."
+          fi
+          echo "dias=$dias" >> "$GITHUB_OUTPUT"
+
+      - name: Registrar latido
+        if: steps.check.outputs.hace_falta == 'si'
+        run: |
+          date -u +"%Y-%m-%d" > .github/ultimo-latido.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/ultimo-latido.txt
+          git commit -m "Latido automático: mantener activo el cron de precios
+
+          Sin actividad en el repositorio desde hace ${{ steps.check.outputs.dias }} días.
+          GitHub apaga los workflows programados a los 60."
+          git push
