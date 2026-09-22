@@ -7,6 +7,9 @@ import {
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 import { getFiabilidad } from "@/lib/confidence";
+import {
+  vecinos, filtrosDesdeParams, ordenDesdeParams, calcularTendencia, redondear,
+} from "@/lib/collection";
 
 export default async function ReleasePage({ 
   params, 
@@ -23,35 +26,49 @@ export default async function ReleasePage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. Obtener navegación
-  const { data: navData } = await supabase
-    .from("records")
-    .select("discogs_release_id, artist, title, year, genre, style, label, format");
+  // 1. Obtener navegación.
+  //
+  // Hay que paginar: Supabase corta en 1.000 filas y la colección pasa de eso,
+  // así que antes los discos que quedaban fuera no tenían flechas (indexOf daba
+  // -1 y las dos salían muertas). Y hacen falta los precios, porque el orden por
+  // defecto es por precio y sin ellos la ficha navegaba en otro orden distinto
+  // del que el usuario tenía en pantalla.
+  const fetchAll = async (table: string, columns: string) => {
+    let all: any[] = [];
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await supabase.from(table).select(columns).range(offset, offset + 999);
+      if (error) {
+        // Un fallo a medias devolvería una lista incompleta y las flechas
+        // saltarían discos sin avisar. Mejor dejar constancia.
+        console.error(`❌ Error leyendo ${table} para la navegación:`, error.message);
+        break;
+      }
+      if (!data) break;
+      all = all.concat(data);
+      if (data.length < 1000) break;
+      offset += 1000;
+    }
+    return all;
+  };
 
-  let filteredIds = (navData || []).filter((r: any) => {
-    const q = (sp.search as string || "").toLowerCase();
-    const matchSearch = r.artist?.toLowerCase().includes(q) || r.title?.toLowerCase().includes(q) || r.discogs_release_id.toString().includes(q);
-    const matchGenre = !sp.genre || r.genre?.toLowerCase().includes((sp.genre as string).trim().toLowerCase());
-    const matchStyle = !sp.style || r.style?.toLowerCase().includes((sp.style as string).trim().toLowerCase());
-    const matchYear = !sp.year || String(r.year) === (sp.year as string).trim();
-    const matchLabel = !sp.label || r.label?.toLowerCase().includes((sp.label as string).trim().toLowerCase());
-    
-    let rawFormat = r.format?.toLowerCase() || "";
-    let itemFormatGroup = "Vinilo";
-    if (rawFormat.includes("cd")) itemFormatGroup = "CD";
-    if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
-    
-    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (!sp.format || sp.format === "all" || itemFormatGroup === sp.format);
-  });
+  const [navRecords, navPrices] = await Promise.all([
+    fetchAll("records", "discogs_release_id, artist, title, year, genre, style, label, format, condition_vinyl, condition_sleeve"),
+    fetchAll("latest_prices", "release_id, median_price, lowest_price"),
+  ]);
 
-  const sortBy = (sp.sort as string) || "priceDesc";
-  if (sortBy === "artistAsc") filteredIds.sort((a,b) => (a.artist || "").localeCompare(b.artist || ""));
-  else if (sortBy === "yearDesc") filteredIds.sort((a,b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+  const priceByRelease = new Map<number, number>(
+    navPrices.map((p: any) => [Number(p.release_id), redondear(p.median_price ?? p.lowest_price)])
+  );
 
-  const navIds = filteredIds.map(f => f.discogs_release_id);
-  const currentIndex = navIds.indexOf(parseInt(id, 10));
-  const prevId = currentIndex > 0 ? navIds[currentIndex - 1] : null;
-  const nextId = (currentIndex !== -1 && currentIndex < navIds.length - 1) ? navIds[currentIndex + 1] : null;
+  const navItems = navRecords.map((r: any) => ({
+    release_id: Number(r.discogs_release_id),
+    price: priceByRelease.get(Number(r.discogs_release_id)) ?? 0,
+    record: r,
+  }));
+
+  const { anterior: prevId, siguiente: nextId, posicion, total: totalEnLista } =
+    vecinos(navItems, filtrosDesdeParams(sp), ordenDesdeParams(sp), id);
 
   // 2. Cargar datos del disco
   const { data: recordsData } = await supabase
@@ -93,18 +110,14 @@ export default async function ReleasePage({
   }
 
   const latestPrice = currentPrices?.[0] || {};
-  const currentPriceVal = Math.round((latestPrice.median_price || latestPrice.lowest_price || 0) * 100) / 100;
+  const currentPriceVal = redondear(latestPrice.median_price ?? latestPrice.lowest_price);
 
-  const prevPriceEntry = currentPrices?.find(p => {
-    const pVal = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
-    return pVal !== currentPriceVal;
-  }) || currentPrices?.[1];
-  
-  const prevPrice = Math.round((prevPriceEntry ? (prevPriceEntry.median_price || prevPriceEntry.lowest_price) : currentPriceVal) * 100) / 100;
-  
-  let trend = "stable";
-  if (currentPriceVal > prevPrice) trend = "up";
-  else if (currentPriceVal < prevPrice) trend = "down";
+  // Misma regla que la portada: la lectura inmediatamente anterior. Antes esta
+  // vista buscaba el último precio DISTINTO —que podía ser de hace meses— y
+  // enseñaba esa diferencia como si fuera el cambio del día, así que el mismo
+  // disco podía salir "estable" en la portada y con una subida grande aquí.
+  const { precioAnterior: prevPrice, tendencia: trend } =
+    calcularTendencia(currentPriceVal, currentPrices || []);
 
   // Cuánto respaldo de mercado real tiene esa cifra (ver lib/confidence.ts).
   // Preferimos el nº de copias que Discogs da ahora mismo; si la llamada falló,

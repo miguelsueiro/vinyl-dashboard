@@ -15,6 +15,10 @@ import {
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
+import {
+  cumpleFiltros, ordenarColeccion, calcularTendencia, redondear,
+  type FiltrosColeccion, type OrdenColeccion,
+} from "@/lib/collection";
 
 function DashboardInner({ latestPrices, historicalPrices, records, snapshots, initialSmartFolders }: any) {
   const searchParams = useSearchParams();
@@ -49,29 +53,36 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   const [formatFilter, setFormatFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "top10" | "rarezas">("all");
-  const [sortBy, setSortBy] = useState<"priceDesc" | "priceAsc" | "artistAsc" | "yearDesc">("priceDesc");
+  const [sortBy, setSortBy] = useState<OrdenColeccion>("priceDesc");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const recordMap = useMemo(() => new Map<number, any>(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
   
   // 📈 CÁLCULO DE TENDENCIAS
+  // El historial venía recorriéndose entero por cada disco: 1.331 × 3.000
+  // comparaciones. Se agrupa una sola vez y cada disco consulta lo suyo.
+  const historyByRelease = useMemo(() => {
+    const map = new Map<number, any[]>();
+    for (const h of historicalPrices) {
+      const key = Number(h.release_id);
+      const list = map.get(key);
+      if (list) list.push(h);
+      else map.set(key, [h]);
+    }
+    return map;
+  }, [historicalPrices]);
+
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
-    // Redondear a 2 decimales para evitar micro-variaciones de Discogs. Usamos el precio mediano (ahora ajustado inteligentemente por estado).
-    const price = Math.round((p.median_price || p.lowest_price || 0) * 100) / 100;
-    
-    const history = historicalPrices.filter((h: any) => Number(h.release_id) === Number(p.release_id));
-    const prevEntry = history.length > 1 ? history[1] : null;
-    const prevPrice = Math.round((prevEntry ? (prevEntry.median_price || prevEntry.lowest_price || 0) : price) * 100) / 100;
-    
-    let trend = "stable";
-    if (price > prevPrice) trend = "up";
-    else if (price < prevPrice) trend = "down";
+    const price = redondear(p.median_price ?? p.lowest_price);
+
+    const history = historyByRelease.get(Number(p.release_id)) || [];
+    const { precioAnterior: prevPrice, tendencia: trend } = calcularTendencia(price, history);
 
     const confidence = getFiabilidad(p.num_for_sale, record?.condition_vinyl);
 
     return { ...p, record, price, prevPrice, trend, confidence, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
-  }), [latestPrices, recordMap, historicalPrices]);
+  }), [latestPrices, recordMap, historyByRelease]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);
@@ -80,14 +91,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   const maxPriceItem = sortedByPriceItems.length > 0 ? sortedByPriceItems[0] : null;
   const maxPrice = maxPriceItem ? maxPriceItem.price : 0;
   
-  const sortedData = useMemo(() => {
-    const data = [...enriched];
-    if (sortBy === "priceDesc") return data.sort((a: any, b: any) => b.price - a.price);
-    if (sortBy === "priceAsc") return data.sort((a: any, b: any) => a.price - b.price);
-    if (sortBy === "artistAsc") return data.sort((a: any, b: any) => (a.record?.artist || "").localeCompare(b.record?.artist || ""));
-    if (sortBy === "yearDesc") return data.sort((a: any, b: any) => (parseInt(b.record?.year) || 0) - (parseInt(a.record?.year) || 0));
-    return data;
-  }, [enriched, sortBy]);
+  const sortedData = useMemo(() => ordenarColeccion(enriched, sortBy), [enriched, sortBy]);
   
   const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
   const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
@@ -95,36 +99,17 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   const years = useMemo(() => Array.from(new Set(records.map((r: any) => String(r.year)).filter((y: string) => y && y !== "null" && y !== "0"))).sort(), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
 
-  const filtered = sortedData.filter((item: any) => {
-    const q = search.toLowerCase();
-    const matchSearch = item.record?.artist?.toLowerCase().includes(q) || item.record?.title?.toLowerCase().includes(q) || item.release_id.toString().includes(q);
-    const matchGenre = !genre || item.record?.genre?.toLowerCase().includes(genre.trim().toLowerCase());
-    const matchStyle = !styleFilter || item.record?.style?.toLowerCase().includes(styleFilter.trim().toLowerCase());
-    const matchYear = !year || String(item.record?.year) === year.trim();
-    const matchLabel = !labelFilter || item.record?.label?.toLowerCase().includes(labelFilter.trim().toLowerCase());
-    
-    let rawFormat = item.record?.format?.toLowerCase() || "";
-    let itemFormatGroup = "Vinilo";
-    if (rawFormat.includes("cd")) itemFormatGroup = "CD";
-    else if (rawFormat.includes("cassette")) itemFormatGroup = "Cassette";
-    else if (rawFormat.includes('lp') || rawFormat.includes('12"')) itemFormatGroup = "LP";
-    else if (rawFormat.includes('10"')) itemFormatGroup = "10in";
-    else if (rawFormat.includes('7"')) itemFormatGroup = "7in";
+  const filters: FiltrosColeccion = useMemo(() => ({
+    search, genre, style: styleFilter, year, label: labelFilter,
+    format: formatFilter, condition: conditionFilter,
+  }), [search, genre, styleFilter, year, labelFilter, formatFilter, conditionFilter]);
 
-    let matchCondition = true;
-    if (conditionFilter === "__unknown__") {
-      const isUnknownVinyl = !item.record?.condition_vinyl || item.record.condition_vinyl === "Desconocido";
-      const isUnknownSleeve = !item.record?.condition_sleeve || item.record.condition_sleeve === "Desconocido";
-      matchCondition = isUnknownVinyl && isUnknownSleeve;
-    } else if (conditionFilter) {
-      const cond = conditionFilter.toLowerCase();
-      const vinylMatch = item.record?.condition_vinyl?.toLowerCase() === cond;
-      const sleeveMatch = item.record?.condition_sleeve?.toLowerCase() === cond;
-      matchCondition = vinylMatch || sleeveMatch;
-    }
-    
-    return matchSearch && matchGenre && matchStyle && matchYear && matchLabel && (formatFilter === "all" || itemFormatGroup === formatFilter) && matchCondition;
-  });
+  // Antes se recalculaba en cada render —cada tecla de la búsqueda recorría los
+  // 1.331 discos comparando siete campos de texto—, ahora solo cuando cambia algo.
+  const filtered = useMemo(
+    () => sortedData.filter((item: any) => cumpleFiltros(item, filters)),
+    [sortedData, filters]
+  );
 
   let displayData = filtered;
   if (viewMode === "top10") displayData = filtered.slice(0, 10);
@@ -240,6 +225,9 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
     if (year) params.set("year", year);
     if (labelFilter) params.set("label", labelFilter);
     if (formatFilter !== "all") params.set("format", formatFilter);
+    // Sin esto la ficha reconstruía una lista distinta de la que se veía, y las
+    // flechas de anterior/siguiente saltaban a discos filtrados fuera.
+    if (conditionFilter) params.set("condition", conditionFilter);
     if (sortBy !== "priceDesc") params.set("sort", sortBy);
     if (viewMode !== "all") params.set("view", viewMode);
     const qs = params.toString();
@@ -320,7 +308,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
       ) : activeTab === "folders" ? (
         <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} />
       ) : activeTab === "analytics" ? (
-        <AnalyticsView latestPrices={latestPrices} records={records} enriched={enriched} />
+        <AnalyticsView records={records} enriched={enriched} />
       ) : (
         <RandomView records={records} latestPrices={latestPrices} />
       )}
