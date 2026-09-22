@@ -90,25 +90,40 @@ async function runUpdate() {
 
   // --- FASE 2: ACTUALIZACIÓN DE PRECIOS ---
   console.log("📈 Starting price updates...");
-  let statsSummary = { total: 0, success: 0, fallback: 0, noData: 0 };
+  let statsSummary = { total: 0, success: 0, fallback: 0, noData: 0, countries: 0 };
   
-  let allRecords: any[] = [];
-  let fetchedCount = 1000;
-  let offset = 0;
-  
-  while (fetchedCount === 1000) {
-    const { data, error } = await supabase
-      .from("records")
-      .select("discogs_release_id, condition_vinyl")
-      .range(offset, offset + 999);
-    
-    if (error) break;
-    if (data) {
-      allRecords = allRecords.concat(data);
-      fetchedCount = data.length;
+  // La columna country puede no existir todavía (ver scripts/add_country_column.sql).
+  // Si no está, seguimos sin ella en vez de dejar la colección entera sin actualizar.
+  let hasCountryColumn = true;
+
+  const fetchRecords = async (columns: string) => {
+    const rows: any[] = [];
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("records")
+        .select(columns)
+        .range(offset, offset + 999);
+      if (error) throw error;
+      if (!data) break;
+      rows.push(...data);
+      if (data.length < 1000) break;
       offset += 1000;
-    } else {
-      fetchedCount = 0;
+    }
+    return rows;
+  };
+
+  let allRecords: any[] = [];
+  try {
+    allRecords = await fetchRecords("discogs_release_id, condition_vinyl, country");
+  } catch (err: any) {
+    console.warn("⚠️ No se pudo leer la columna 'country' (¿falta ejecutar add_country_column.sql?):", err?.message);
+    console.warn("   Continuando sin guardar el país.");
+    hasCountryColumn = false;
+    try {
+      allRecords = await fetchRecords("discogs_release_id, condition_vinyl");
+    } catch (err2: any) {
+      console.error("❌ No se pudieron leer los discos:", err2?.message);
     }
   }
 
@@ -137,7 +152,7 @@ async function runUpdate() {
 
   // 2. Update each record with Discogs rate limiting
   for (let i = 0; i < allRecords.length; i++) {
-    const { discogs_release_id: releaseId, condition_vinyl: userCondition } = allRecords[i];
+    const { discogs_release_id: releaseId, condition_vinyl: userCondition, country: storedCountry } = allRecords[i];
     console.log(`[${i+1}/${allRecords.length}] Updating ID ${releaseId} (${userCondition || "No condition"})...`);
 
     let success = false;
@@ -157,7 +172,20 @@ async function runUpdate() {
         }
 
         const releaseData: any = await response.json();
-        
+
+        // El país solo viene en la ficha completa, no en la colección, así que
+        // se guarda aquí aprovechando que ya la hemos pedido. Solo escribimos
+        // cuando cambia, para no hacer 1.331 escrituras inútiles cada noche.
+        const freshCountry = releaseData.country || null;
+        if (hasCountryColumn && freshCountry && freshCountry !== storedCountry) {
+          const { error: countryError } = await supabase
+            .from("records")
+            .update({ country: freshCountry })
+            .eq("discogs_release_id", releaseId);
+          if (countryError) console.warn(`  ⚠️ No se pudo guardar el país de ${releaseId}:`, countryError.message);
+          else statsSummary.countries++;
+        }
+
         let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
         let medianPrice = 0;
         let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
@@ -306,6 +334,7 @@ async function runUpdate() {
   console.log(`✅ Real Medians:    ${statsSummary.success}`);
   console.log(`📉 Low Fallbacks:   ${statsSummary.fallback}`);
   console.log(`❓ No Data (0€):    ${statsSummary.noData}`);
+  console.log(`🌍 Países guardados: ${statsSummary.countries}`);
   console.log("---------------------------\n");
 }
 
