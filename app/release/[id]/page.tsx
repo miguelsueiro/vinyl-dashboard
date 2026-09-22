@@ -2,10 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import styles from "./release.module.css";
 import StreamingSection from "./streaming-section";
-import { 
-  IconVinyl, IconChevronLeft, IconChevronRight, 
-  IconArrowUp, IconArrowDown, IconMinus 
+import {
+  IconVinyl, IconChevronLeft, IconChevronRight,
+  IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
+import { getFiabilidad } from "@/lib/confidence";
 
 export default async function ReleasePage({ 
   params, 
@@ -104,6 +105,12 @@ export default async function ReleasePage({
   let trend = "stable";
   if (currentPriceVal > prevPrice) trend = "up";
   else if (currentPriceVal < prevPrice) trend = "down";
+
+  // Cuánto respaldo de mercado real tiene esa cifra (ver lib/confidence.ts).
+  // Preferimos el nº de copias que Discogs da ahora mismo; si la llamada falló,
+  // caemos al que quedó guardado en el último precio.
+  const copiasALaVenta = discogsRelease?.num_for_sale ?? latestPrice.num_for_sale;
+  const fiabilidad = getFiabilidad(copiasALaVenta, recordsData.condition_vinyl);
 
   const discogsLink = `https://www.discogs.com/release/${id}`;
 
@@ -286,6 +293,12 @@ export default async function ReleasePage({
               </div>
               {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
             </div>
+          </div>
+
+          <div className={`${styles.confidenceRow} ${styles["conf" + fiabilidad.nivel.charAt(0).toUpperCase() + fiabilidad.nivel.slice(1)]}`}>
+            <span className={styles.confDot} />
+            <span className={styles.confLabel}>{fiabilidad.etiqueta}</span>
+            <span className={styles.confReason}>{fiabilidad.motivo}</span>
           </div>
         </div>
       </div>

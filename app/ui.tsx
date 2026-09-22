@@ -10,10 +10,11 @@ import GenreChart from "./genre-chart";
 import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
 import SmartFoldersView from "./smart-folders";
-import { 
+import {
   IconVinyl, IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose,
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
+import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 
 function DashboardInner({ latestPrices, historicalPrices, records, snapshots, initialSmartFolders }: any) {
   const searchParams = useSearchParams();
@@ -51,7 +52,7 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   const [sortBy, setSortBy] = useState<"priceDesc" | "priceAsc" | "artistAsc" | "yearDesc">("priceDesc");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const recordMap = useMemo(() => new Map(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
+  const recordMap = useMemo(() => new Map<number, any>(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
   
   // 📈 CÁLCULO DE TENDENCIAS
   const enriched = useMemo(() => latestPrices.map((p: any) => {
@@ -67,11 +68,14 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
     if (price > prevPrice) trend = "up";
     else if (price < prevPrice) trend = "down";
 
-    return { ...p, record, price, prevPrice, trend, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
+    const confidence = getFiabilidad(p.num_for_sale, record?.condition_vinyl);
+
+    return { ...p, record, price, prevPrice, trend, confidence, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
   }), [latestPrices, recordMap, historicalPrices]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);
+  const confidenceSummary = useMemo(() => resumirFiabilidad(enriched), [enriched]);
   const sortedByPriceItems = [...enriched].sort((a: any, b: any) => b.price - a.price);
   const maxPriceItem = sortedByPriceItems.length > 0 ? sortedByPriceItems[0] : null;
   const maxPrice = maxPriceItem ? maxPriceItem.price : 0;
@@ -250,7 +254,13 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
         <>
           <div className={styles.homeChart}><InvestmentChart snapshots={snapshots} /></div>
           <div className={styles.kpiGrid}>
-            <KPI label="Valor Total Colección" value={formatEuro(totalValue)} />
+            <KPI
+              label="Valor Total Colección"
+              value={formatEuro(totalValue)}
+              subText={confidenceSummary.discos > 0
+                ? `${formatEuro(confidenceSummary.firme.valor)} sobre mercado contrastado`
+                : ""}
+            />
             <KPI label="Disco Más Caro" value={formatEuro(maxPrice)} subText={maxPriceItem ? `${maxPriceItem.record?.artist} - ${maxPriceItem.record?.title}` : ""} />
             <KPI label="Total Discos" value={`${records.length}`} />
           </div>
@@ -287,7 +297,14 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
                   <div className={styles.recordArtist}>{item.record?.artist}</div>
                   <div className={styles.recordTitle}>{item.record?.title}</div>
                   <div className={styles.recordPrice}>
-                    <span>{formatEuro(item.price)}</span>
+                    <span className={styles.priceWithDot}>
+                      <i
+                        className={`${styles.confDot} ${styles["conf" + item.confidence.nivel.charAt(0).toUpperCase() + item.confidence.nivel.slice(1)]}`}
+                        title={`${item.confidence.etiqueta} — ${item.confidence.motivo}`}
+                        aria-label={`Fiabilidad: ${item.confidence.etiqueta}. ${item.confidence.motivo}`}
+                      />
+                      {formatEuro(item.price)}
+                    </span>
                     <div className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}>
                       {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
                       {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}

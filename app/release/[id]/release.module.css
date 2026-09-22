@@ -613,3 +613,39 @@
     min-width: 0;
   }
 }
+
+/* ---- SEMÁFORO DE FIABILIDAD ----
+   Cuánto respaldo de mercado real tiene el precio. Ver lib/confidence.ts. */
+.confidenceRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+
+.confDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+.confLabel {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.confReason {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.confFirme { color: #1ED760; }
+.confOrientativo { color: #e8b339; }
+.confDudoso { color: #ff4d4d; }

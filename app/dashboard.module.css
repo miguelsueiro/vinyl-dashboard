@@ -1021,3 +1021,25 @@
 }
 
 
+
+/* ---- SEMÁFORO DE FIABILIDAD ----
+   Cuánto respaldo de mercado real tiene el precio que se muestra.
+   Ver lib/confidence.ts para los criterios. */
+.priceWithDot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.confDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+  cursor: help;
+}
+
+.confFirme { background: #1ED760; }
+.confOrientativo { background: #e8b339; }
+.confDudoso { background: #ff4d4d; }
