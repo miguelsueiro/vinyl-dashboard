@@ -11,8 +11,11 @@ import {
 import StyleChart from "./genre-chart";
 import { IconStar, IconEuro, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 
-export default function AnalyticsView({ latestPrices, records, enriched }: any) {
-  
+// `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
+// esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
+// con records.find() dentro de un map: 1.331 × 1.331 comparaciones, tres veces.
+export default function AnalyticsView({ records, enriched }: any) {
+
   const formatEuro = (val: number) => 
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(val);
 
@@ -38,40 +41,47 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
     ];
     return bins.map((bin: any) => ({
       ...bin,
-      count: latestPrices.filter((p: any) => {
-        const price = p.median_price || p.lowest_price || 0;
-        return price >= bin.min && price < bin.max;
-      }).length
+      count: enriched.filter((item: any) => item.price >= bin.min && item.price < bin.max).length
     }));
-  }, [latestPrices]);
+  }, [enriched]);
 
   // 🥧 DATA: Peso por Estilo en Valor Total
   const styleValueData = useMemo(() => {
     const values: Record<string, number> = {};
-    latestPrices.forEach((p: any) => {
-      const record = records.find((r: any) => Number(r.discogs_release_id) === Number(p.release_id));
-      const style = record?.style?.split(",")[0] || "Otros";
-      const price = p.median_price || p.lowest_price || 0;
-      values[style] = (values[style] || 0) + price;
+    enriched.forEach((item: any) => {
+      const style = item.record?.style?.split(",")[0] || "Otros";
+      values[style] = (values[style] || 0) + item.price;
     });
     return Object.entries(values)
       .map(([name, value]: [string, number]) => ({ name, value }))
       .sort((a: any, b: any) => b.value - a.value)
       .slice(0, 7);
-  }, [latestPrices, records]);
+  }, [enriched]);
 
   // 🧭 DATA: Scatter Plot (Precio vs Escasez/Stock)
   const scatterData = useMemo(() => {
-    return latestPrices.map((p: any) => {
-      const record = records.find((r: any) => Number(r.discogs_release_id) === Number(p.release_id));
-      return {
-        x: p.num_for_sale || 0,
-        y: p.median_price || p.lowest_price || 0,
-        name: record?.title || "Disco",
-        artist: record?.artist || ""
-      };
-    }).filter((d: any) => d.y > 0);
-  }, [latestPrices, records]);
+    return enriched.map((item: any) => ({
+      x: Number(item.num_for_sale) || 0,
+      y: item.price,
+      name: item.record?.title || "Disco",
+      artist: item.record?.artist || ""
+    })).filter((d: any) => d.y > 0);
+  }, [enriched]);
+
+  const topValue = useMemo(
+    () => [...enriched].sort((a: any, b: any) => b.price - a.price).slice(0, 5),
+    [enriched]
+  );
+
+  // Caro y con poca oferta = raro. El +0.5 evita dividir por cero cuando no hay
+  // ninguna copia a la venta, que es justo el caso más escaso.
+  const topRare = useMemo(
+    () => enriched
+      .map((item: any) => ({ ...item, rareScore: item.price / ((Number(item.num_for_sale) || 0) + 0.5) }))
+      .sort((a: any, b: any) => b.rareScore - a.rareScore)
+      .slice(0, 5),
+    [enriched]
+  );
 
   const COLORS = ["#1ED760", "#2ECC71", "#3498DB", "#9B59B6", "#E67E22", "#E74C3C", "#F1C40F"];
 
@@ -136,14 +146,14 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
       <div className={styles.insightsRanking}>
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconEuro className={styles.titleIcon} /> Top 5 Valor Individual</h3>
-            {[...latestPrices].sort((a: any, b: any) => (b.median_price || b.lowest_price) - (a.median_price || a.lowest_price)).slice(0, 5).map((p: any, i: number) => {
-              const r = records.find((rec: any) => Number(rec.discogs_release_id) === Number(p.release_id));
+            {topValue.map((item: any, i: number) => {
+              const r = item.record;
               return (
-                <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
+                <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}>{i+1}</span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
-                    <div className={styles.rankPrice}>{formatEuro(p.median_price || p.lowest_price)}</div>
+                    <div className={styles.rankPrice}>{formatEuro(item.price)}</div>
                   </div>
                 </Link>
               );
@@ -152,18 +162,14 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
 
          <div className={styles.rankingColumn}>
             <h3 className={styles.analyticTitle}><IconStar className={styles.titleIcon} /> Índice de Rareza</h3>
-            {latestPrices.map((p: any) => {
-              const price = p.median_price || p.lowest_price || 0;
-              const stock = p.num_for_sale || 1;
-              return { ...p, rareScore: price / (stock + 0.5) };
-            }).sort((a: any, b: any) => b.rareScore - a.rareScore).slice(0, 5).map((p: any, i: number) => {
-              const r = records.find((rec: any) => Number(rec.discogs_release_id) === Number(p.release_id));
+            {topRare.map((item: any, i: number) => {
+              const r = item.record;
               return (
-                <Link href={`/release/${p.release_id}`} key={p.id} className={styles.rankingItem}>
+                <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}><IconStar className={styles.rankStar} /></span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
-                    <div className={styles.rankPrice}>Score: {p.rareScore.toFixed(1)}</div>
+                    <div className={styles.rankPrice}>Score: {item.rareScore.toFixed(1)}</div>
                   </div>
                 </Link>
               );
@@ -175,7 +181,7 @@ export default function AnalyticsView({ latestPrices, records, enriched }: any) 
         <h3 className={styles.analyticTitle}><IconArrowUp className={styles.titleIcon} style={{ color: '#1ED760' }} /> Todas las Variaciones Recientes</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {latestChanges.length > 0 ? latestChanges.map((item: any) => (
-            <Link href={`/release/${item.release_id}`} key={item.id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px' }}>
+            <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px' }}>
               <div className={styles.rankIndex} style={{ width: '40px' }}>
                  {item.trend === "up" ? <IconArrowUp style={{ color: '#1ED760', width: '16px' }} /> : <IconArrowDown style={{ color: '#ff4d4d', width: '16px' }} />}
               </div>
