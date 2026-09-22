@@ -7,10 +7,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const authHeader = request.headers.get('authorization');
   
-  const isAuthorized = 
-    (process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`) || 
-    (process.env.CRON_SECRET && searchParams.get('key') === process.env.CRON_SECRET) ||
-    (searchParams.get('key') === "vinyl-update-2026");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("CRON_SECRET no está configurado: se rechaza la petición.");
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const isAuthorized =
+    authHeader === `Bearer ${cronSecret}` ||
+    searchParams.get('key') === cronSecret;
 
   if (!isAuthorized) {
     return new NextResponse('Unauthorized', { status: 401 });

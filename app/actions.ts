@@ -3,16 +3,29 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Estas acciones corren SOLO en el servidor ("use server"), así que usamos la
+// service role key. La anon key viaja en el bundle del navegador y, con RLS
+// activada, ya no tiene permiso de escritura.
+const MISSING_CONFIG = "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor: no se puede escribir en la base de datos.";
 
-const supabase = createClient(supabaseUrl!, supabaseKey!);
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error("❌ " + MISSING_CONFIG);
+    return null;
+  }
+  return createClient(url, key);
+}
 
 export async function saveStreamingUrl(formData: FormData) {
   const releaseId = formData.get("releaseId") as string;
   const url = formData.get("url") as string;
 
   if (!releaseId) return { success: false, error: "No ID provided" };
+
+  const supabase = getSupabase();
+  if (!supabase) return { success: false, error: MISSING_CONFIG };
 
   const { data, error, count } = await supabase
     .from("records")
@@ -42,6 +55,9 @@ export async function saveStreamingUrl(formData: FormData) {
 export async function createSmartFolder(name: string, rules: any) {
   if (!name) return { success: false, error: "El nombre es obligatorio" };
 
+  const supabase = getSupabase();
+  if (!supabase) return { success: false, error: MISSING_CONFIG };
+
   const { data, error } = await supabase
     .from("smart_folders")
     .insert({ name, rules })
@@ -58,6 +74,9 @@ export async function createSmartFolder(name: string, rules: any) {
 
 export async function updateSmartFolder(id: string, name: string, rules: any) {
   if (!id || !name) return { success: false, error: "ID y nombre son obligatorios" };
+
+  const supabase = getSupabase();
+  if (!supabase) return { success: false, error: MISSING_CONFIG };
 
   const { data, error } = await supabase
     .from("smart_folders")
@@ -76,6 +95,9 @@ export async function updateSmartFolder(id: string, name: string, rules: any) {
 
 export async function deleteSmartFolder(id: string) {
   if (!id) return { success: false, error: "No se proporcionó ID" };
+
+  const supabase = getSupabase();
+  if (!supabase) return { success: false, error: MISSING_CONFIG };
 
   const { error } = await supabase
     .from("smart_folders")

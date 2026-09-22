@@ -278,21 +278,27 @@ async function runUpdate() {
   if (snapError) console.error("❌ Error saving snapshot:", snapError);
   else console.log("✅ Snapshot saved.");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    console.log("🔄 Triggering on-demand cache revalidation...");
-    const revalRes = await fetch(`${appUrl}/api/revalidate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret: supabaseKey })
-    });
-    if (revalRes.ok) {
-      console.log("✅ Cache successfully purged.");
-    } else {
-      console.warn("⚠️ Failed to purge cache:", revalRes.status);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const revalidateSecret = process.env.REVALIDATE_SECRET;
+
+  if (!appUrl || !revalidateSecret) {
+    console.log("ℹ️ Skipping revalidation (falta NEXT_PUBLIC_APP_URL o REVALIDATE_SECRET).");
+  } else {
+    try {
+      console.log("🔄 Triggering on-demand cache revalidation...");
+      const revalRes = await fetch(`${appUrl}/api/revalidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: revalidateSecret })
+      });
+      if (revalRes.ok) {
+        console.log("✅ Cache successfully purged.");
+      } else {
+        console.warn("⚠️ Failed to purge cache:", revalRes.status);
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not reach revalidation endpoint:", err);
     }
-  } catch (err) {
-    console.warn("⚠️ Could not reach revalidation endpoint:", err);
   }
 
   console.log("\n--- 🏁 MISSION SUMMARY ---");

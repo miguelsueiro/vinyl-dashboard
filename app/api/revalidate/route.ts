@@ -5,8 +5,14 @@ export async function POST(request: NextRequest) {
   try {
     const { secret } = await request.json();
 
-    // Utilizamos el SERVICE_ROLE_KEY o un secreto específico como contraseña
-    const expectedSecret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REVALIDATE_SECRET;
+    // Secreto dedicado. NO reutilizar la service role key: viajaría por la red
+    // en cada llamada y da acceso total de escritura a la base de datos.
+    const expectedSecret = process.env.REVALIDATE_SECRET;
+
+    if (!expectedSecret) {
+      console.error("REVALIDATE_SECRET no está configurado: se rechaza la petición.");
+      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    }
 
     if (!secret || secret !== expectedSecret) {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
