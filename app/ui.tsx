@@ -16,11 +16,11 @@ import {
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import {
-  cumpleFiltros, ordenarColeccion, calcularTendencia, redondear,
+  cumpleFiltros, ordenarColeccion, redondear,
   type FiltrosColeccion, type OrdenColeccion,
 } from "@/lib/collection";
 
-function DashboardInner({ latestPrices, historicalPrices, records, snapshots, initialSmartFolders }: any) {
+function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders }: any) {
   const searchParams = useSearchParams();
 
   const [mounted, setMounted] = useState(false);
@@ -59,30 +59,23 @@ function DashboardInner({ latestPrices, historicalPrices, records, snapshots, in
   const recordMap = useMemo(() => new Map<number, any>(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
   
   // 📈 CÁLCULO DE TENDENCIAS
-  // El historial venía recorriéndose entero por cada disco: 1.331 × 3.000
-  // comparaciones. Se agrupa una sola vez y cada disco consulta lo suyo.
-  const historyByRelease = useMemo(() => {
-    const map = new Map<number, any[]>();
-    for (const h of historicalPrices) {
-      const key = Number(h.release_id);
-      const list = map.get(key);
-      if (list) list.push(h);
-      else map.set(key, [h]);
-    }
-    return map;
-  }, [historicalPrices]);
-
+  // El precio anterior lo guarda la sincronización nocturna en la propia fila,
+  // así que aquí no hay que cargar ni recorrer histórico.
   const enriched = useMemo(() => latestPrices.map((p: any) => {
     const record = recordMap.get(Number(p.release_id));
     const price = redondear(p.median_price ?? p.lowest_price);
 
-    const history = historyByRelease.get(Number(p.release_id)) || [];
-    const { precioAnterior: prevPrice, tendencia: trend } = calcularTendencia(price, history);
+    // Sin previous_price (fila nueva, o columna recién creada) no hay con qué
+    // comparar: el anterior es el actual y la flecha queda "estable".
+    const prevPrice = p.previous_price != null ? redondear(p.previous_price) : price;
+    let trend: "up" | "down" | "stable" = "stable";
+    if (price > prevPrice) trend = "up";
+    else if (price < prevPrice) trend = "down";
 
     const confidence = getFiabilidad(p.num_for_sale, record?.condition_vinyl);
 
     return { ...p, record, price, prevPrice, trend, confidence, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
-  }), [latestPrices, recordMap, historyByRelease]);
+  }), [latestPrices, recordMap]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);

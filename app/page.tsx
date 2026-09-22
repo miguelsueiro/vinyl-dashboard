@@ -29,37 +29,26 @@ export default async function Home() {
     return all;
   };
 
-  // Helper to fetch recent 3000 market prices in parallel to compute trends
-  const fetchRecentMarketPrices = async () => {
-    const [page1, page2, page3] = await Promise.all([
-      supabase.from("market_prices").select("release_id, median_price, lowest_price, created_at").order("created_at", { ascending: false }).range(0, 999),
-      supabase.from("market_prices").select("release_id, median_price, lowest_price, created_at").order("created_at", { ascending: false }).range(1000, 1999),
-      supabase.from("market_prices").select("release_id, median_price, lowest_price, created_at").order("created_at", { ascending: false }).range(2000, 2999)
-    ]);
-    return [
-      ...(page1.data || []),
-      ...(page2.data || []),
-      ...(page3.data || [])
-    ];
-  };
-
-  const [allRecords, latestPrices, snapshotsRes, recentMarketPrices, smartFoldersRes] = await Promise.all([
+  // Las flechas de tendencia salen de latest_prices.previous_price, que mantiene
+  // la sincronización nocturna. Antes se cargaban las 3.000 filas más recientes
+  // de market_prices en cada visita: ~2,2 días de historia con 1.330 discos, y
+  // pasando de ~1.500 dejaba de haber dos lecturas por disco, así que los que
+  // caían fuera del corte marcaban "estable" sin haberlo estado.
+  const [allRecords, latestPrices, snapshotsRes, smartFoldersRes] = await Promise.all([
     fetchAll("records"),
     fetchAll("latest_prices"),
     supabase.from("collection_snapshots").select("*").order("created_at", { ascending: true }),
-    fetchRecentMarketPrices(),
     supabase.from("smart_folders").select("*").order("created_at", { ascending: true })
   ]);
 
   const snapshots = snapshotsRes.data || [];
   const smartFolders = smartFoldersRes.data || [];
 
-  console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Hist Prices: ${recentMarketPrices.length}, Smart Folders: ${smartFolders.length}`);
+  console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Smart Folders: ${smartFolders.length}`);
 
   return (
     <ClientDashboard
       latestPrices={latestPrices}
-      historicalPrices={recentMarketPrices}
       records={allRecords}
       snapshots={snapshots}
       initialSmartFolders={smartFolders}

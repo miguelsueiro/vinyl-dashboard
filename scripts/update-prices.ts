@@ -84,6 +84,19 @@ async function runUpdate() {
           .eq("discogs_release_id", releaseId);
       }
     }
+    // Discos que están en la base de datos pero ya no en Discogs (vendidos,
+    // borrados). Solo se avisa: borrarlos automáticamente sería arriesgado, un
+    // fallo a medias de la API dejaría la colección incompleta y se llevaría por
+    // delante los enlaces de streaming guardados a mano. Se limpian a mano.
+    const idsEnDiscogs = new Set(discogsReleases.map((r: any) => Number(r.id)));
+    const { data: idsEnBase } = await supabase.from("records").select("discogs_release_id, artist, title");
+    const huerfanos = (idsEnBase || []).filter((r: any) => !idsEnDiscogs.has(Number(r.discogs_release_id)));
+
+    if (huerfanos.length > 0) {
+      console.warn(`\n⚠️ ${huerfanos.length} disco(s) en la base de datos que ya no están en Discogs:`);
+      huerfanos.forEach((r: any) => console.warn(`   → ${r.discogs_release_id}  ${r.artist} – ${r.title}`));
+      console.warn("   Siguen contando en el valor total. Bórralos a mano si ya no los tienes.\n");
+    }
   } catch (err) {
     console.error("❌ Sync Phase Failed:", err);
   }
@@ -129,6 +142,37 @@ async function runUpdate() {
 
   statsSummary.total = allRecords.length;
   console.log(`📦 Processing prices for ${allRecords.length} records...`);
+
+  // Precios de ANTES de esta pasada. Se leen una sola vez y sirven para llenar
+  // previous_price: es lo que la portada compara para pintar subidas y bajadas.
+  // La columna puede no existir todavía (ver scripts/add_previous_price.sql).
+  const previousPrices = new Map<string, number>();
+  let hasPreviousPriceColumn = true;
+  {
+    let offsetPrev = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("latest_prices")
+        .select("release_id, median_price, lowest_price")
+        .range(offsetPrev, offsetPrev + 999);
+      if (error) {
+        console.warn("⚠️ No se pudo leer latest_prices para previous_price:", error.message);
+        break;
+      }
+      if (!data) break;
+      for (const row of data) {
+        previousPrices.set(String(row.release_id), Number(row.median_price) || Number(row.lowest_price) || 0);
+      }
+      if (data.length < 1000) break;
+      offsetPrev += 1000;
+    }
+
+    const { error: probeError } = await supabase.from("latest_prices").select("previous_price").limit(1);
+    if (probeError) {
+      console.warn("⚠️ Falta la columna 'previous_price' (¿sin ejecutar add_previous_price.sql?). Se omite.");
+      hasPreviousPriceColumn = false;
+    }
+  }
 
   // (Resto de la lógica de precios igual...)
 
@@ -237,7 +281,11 @@ async function runUpdate() {
             currency: currency
           });
 
-      // Upsert into latest_prices table for fast look‑up
+      // Upsert into latest_prices table for fast look‑up.
+      // previous_price guarda el valor que esta fila tenía antes, para que la
+      // portada pinte la flecha de tendencia sin cargar histórico.
+      const previousPrice = previousPrices.get(releaseId.toString());
+
       const { error: upsertError } = await supabase
         .from('latest_prices')
         .upsert({
@@ -245,6 +293,7 @@ async function runUpdate() {
           median_price: medianPrice,
           lowest_price: lowestPrice,
           num_for_sale: numForSale,
+          ...(hasPreviousPriceColumn ? { previous_price: previousPrice ?? medianPrice } : {}),
           updated_at: new Date().toISOString()
         }, { onConflict: 'release_id' });
 
@@ -271,38 +320,39 @@ async function runUpdate() {
   }
 
   // 3. Create global snapshot
+  //
+  // Antes esto recorría el histórico ENTERO de market_prices para quedarse con
+  // la última fila de cada disco: 185.000 filas y 33 segundos, creciendo 1.330
+  // filas cada noche. latest_prices ya contiene exactamente ese dato — son
+  // 1.330 filas y dos décimas de segundo, y da el mismo total al céntimo.
   console.log("📊 Calculating final collection value...");
-  let allPrices: any[] = [];
-  let fetchedPrices = 1000;
+  let snapshotRows: any[] = [];
   let offsetPrices = 0;
-  while (fetchedPrices === 1000) {
+  for (;;) {
     const { data, error } = await supabase
-      .from("market_prices")
-      .select("*")
-      .order("created_at", { ascending: false })
+      .from("latest_prices")
+      .select("median_price, lowest_price")
       .range(offsetPrices, offsetPrices + 999);
-    
-    if (error) break;
-    if (data) {
-      allPrices = allPrices.concat(data);
-      fetchedPrices = data.length;
-      offsetPrices += 1000;
-    } else {
-      fetchedPrices = 0;
+
+    if (error) {
+      console.error("❌ Error leyendo latest_prices para el snapshot:", error.message);
+      break;
     }
+    if (!data) break;
+    snapshotRows = snapshotRows.concat(data);
+    if (data.length < 1000) break;
+    offsetPrices += 1000;
   }
 
-  const latestPricesMap = new Map();
-  allPrices?.forEach(p => {
-    if(!latestPricesMap.has(p.release_id)) {
-      latestPricesMap.set(p.release_id, p.median_price || p.lowest_price || 0);
-    }
-  });
-  
-  const totalValue = Array.from(latestPricesMap.values()).reduce((a: any, b: any) => a + b, 0);
-  console.log(`✨ Total Collection Value: ${totalValue.toFixed(2)} EUR`);
+  const totalValue = snapshotRows.reduce(
+    (suma, p) => suma + (Number(p.median_price) || Number(p.lowest_price) || 0),
+    0
+  );
+  console.log(`✨ Total Collection Value: ${totalValue.toFixed(2)} EUR (${snapshotRows.length} discos)`);
 
-  const { error: snapError } = await supabase.from("collection_snapshots").insert({ total_value: totalValue });
+  const { error: snapError } = await supabase
+    .from("collection_snapshots")
+    .insert({ total_value: totalValue, total_records: snapshotRows.length });
   if (snapError) console.error("❌ Error saving snapshot:", snapError);
   else console.log("✅ Snapshot saved.");
 
