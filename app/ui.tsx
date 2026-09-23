@@ -17,7 +17,8 @@ import {
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import {
   cumpleFiltros, ordenarColeccion, redondear,
-  type FiltrosColeccion, type OrdenColeccion,
+  filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, construirQuery,
+  type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
 } from "@/lib/collection";
 
 function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders }: any) {
@@ -43,17 +44,21 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Estado inicial desde la URL. Se lee una sola vez, al montar: a partir de ahí
+  // manda el estado y la URL es su reflejo (ver el efecto de sincronización).
+  const [filtrosIniciales] = useState(() => filtrosDesdeParams(searchParams));
+
   const [activeTab, setActiveTab] = useState<"collection" | "analytics" | "random" | "folders">("collection");
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState(searchParams.get("genre") || "");
-  const [styleFilter, setStyleFilter] = useState(searchParams.get("style") || "");
-  const [year, setYear] = useState(searchParams.get("year") || "");
-  const [labelFilter, setLabelFilter] = useState(searchParams.get("label") || "");
-  const [formatFilter, setFormatFilter] = useState("all");
-  const [conditionFilter, setConditionFilter] = useState("");
-  const [viewMode, setViewMode] = useState<"all" | "top10" | "rarezas">("all");
-  const [sortBy, setSortBy] = useState<OrdenColeccion>("priceDesc");
+  const [search, setSearch] = useState(filtrosIniciales.search);
+  const [genre, setGenre] = useState(filtrosIniciales.genre);
+  const [styleFilter, setStyleFilter] = useState(filtrosIniciales.style);
+  const [year, setYear] = useState(filtrosIniciales.year);
+  const [labelFilter, setLabelFilter] = useState(filtrosIniciales.label);
+  const [formatFilter, setFormatFilter] = useState(filtrosIniciales.format);
+  const [conditionFilter, setConditionFilter] = useState(filtrosIniciales.condition);
+  const [viewMode, setViewMode] = useState<VistaColeccion>(() => vistaDesdeParams(searchParams));
+  const [sortBy, setSortBy] = useState<OrdenColeccion>(() => ordenDesdeParams(searchParams));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const recordMap = useMemo(() => new Map<number, any>(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
@@ -96,6 +101,22 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
     search, genre, style: styleFilter, year, label: labelFilter,
     format: formatFilter, condition: conditionFilter,
   }), [search, genre, styleFilter, year, labelFilter, formatFilter, conditionFilter]);
+
+  // La URL refleja el estado, para que compartirla —o volver desde una ficha—
+  // devuelva exactamente lo que había en pantalla.
+  //
+  // Se usa la History API nativa y no router.replace a propósito: la portada es
+  // force-dynamic, así que un replace volvería a pedir los 1.330 discos al
+  // servidor en cada tecla de la búsqueda. Next integra pushState/replaceState
+  // con useSearchParams sin recargar la página.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const qs = construirQuery(filters, sortBy, viewMode).toString();
+    const destino = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    if (destino !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, "", destino);
+    }
+  }, [filters, sortBy, viewMode]);
 
   // Antes se recalculaba en cada render —cada tecla de la búsqueda recorría los
   // 1.331 discos comparando siete campos de texto—, ahora solo cuando cambia algo.
@@ -210,20 +231,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
     </div>
   );
 
+  // Mismo constructor que usa la sincronización de la URL, para que lo que se
+  // envía a la ficha y lo que se recupera al volver no puedan divergir.
   const getReleaseUrl = (releaseId: any) => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (genre) params.set("genre", genre);
-    if (styleFilter) params.set("style", styleFilter);
-    if (year) params.set("year", year);
-    if (labelFilter) params.set("label", labelFilter);
-    if (formatFilter !== "all") params.set("format", formatFilter);
-    // Sin esto la ficha reconstruía una lista distinta de la que se veía, y las
-    // flechas de anterior/siguiente saltaban a discos filtrados fuera.
-    if (conditionFilter) params.set("condition", conditionFilter);
-    if (sortBy !== "priceDesc") params.set("sort", sortBy);
-    if (viewMode !== "all") params.set("view", viewMode);
-    const qs = params.toString();
+    const qs = construirQuery(filters, sortBy, viewMode).toString();
     return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
   };
 

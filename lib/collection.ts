@@ -16,6 +16,11 @@ export type GrupoFormato = "LP" | "10in" | "7in" | "CD" | "Cassette" | "Vinilo";
 
 export type OrdenColeccion = "priceDesc" | "priceAsc" | "artistAsc" | "yearDesc";
 
+export type VistaColeccion = "all" | "top10" | "rarezas";
+
+export const ORDEN_POR_DEFECTO: OrdenColeccion = "priceDesc";
+export const VISTA_POR_DEFECTO: VistaColeccion = "all";
+
 /** Lo mínimo que necesita un disco para filtrarse y ordenarse. */
 export interface ItemColeccion {
   release_id: string | number;
@@ -166,31 +171,76 @@ export function vecinos(
   };
 }
 
-/** Lee los filtros de la query string, con los mismos nombres que usa la portada. */
-export function filtrosDesdeParams(
-  sp: Record<string, string | string[] | undefined>
-): FiltrosColeccion {
-  const leer = (k: string) => {
-    const v = sp[k];
-    return typeof v === "string" ? v : "";
-  };
+/**
+ * El contrato de la URL vive aquí, en un solo sitio.
+ *
+ * La portada escribe estos nueve parámetros y la ficha los lee para reconstruir
+ * la lista. Cuando cada vista tenía su propia lista de nombres, la ficha enviaba
+ * `search`, `format`, `condition`, `sort` y `view` y la portada solo leía cuatro:
+ * al volver atrás se perdían los otros cinco.
+ *
+ * Acepta tanto el objeto plano de `searchParams` de un Server Component como el
+ * `URLSearchParams` que devuelve `useSearchParams()` en cliente.
+ */
+type FuenteParams =
+  | Record<string, string | string[] | undefined>
+  | { get(name: string): string | null };
+
+function leerParam(sp: FuenteParams, clave: string): string {
+  if (typeof (sp as { get?: unknown }).get === "function") {
+    return (sp as { get(n: string): string | null }).get(clave) ?? "";
+  }
+  const v = (sp as Record<string, string | string[] | undefined>)[clave];
+  return typeof v === "string" ? v : "";
+}
+
+export function filtrosDesdeParams(sp: FuenteParams): FiltrosColeccion {
   return {
-    search: leer("search"),
-    genre: leer("genre"),
-    style: leer("style"),
-    year: leer("year"),
-    label: leer("label"),
-    format: leer("format") || "all",
-    condition: leer("condition"),
+    search: leerParam(sp, "search"),
+    genre: leerParam(sp, "genre"),
+    style: leerParam(sp, "style"),
+    year: leerParam(sp, "year"),
+    label: leerParam(sp, "label"),
+    format: leerParam(sp, "format") || "all",
+    condition: leerParam(sp, "condition"),
   };
 }
 
-export function ordenDesdeParams(
-  sp: Record<string, string | string[] | undefined>
-): OrdenColeccion {
-  const v = sp["sort"];
-  const valido: OrdenColeccion[] = ["priceDesc", "priceAsc", "artistAsc", "yearDesc"];
-  return valido.includes(v as OrdenColeccion) ? (v as OrdenColeccion) : "priceDesc";
+export function ordenDesdeParams(sp: FuenteParams): OrdenColeccion {
+  const v = leerParam(sp, "sort");
+  const validos: OrdenColeccion[] = ["priceDesc", "priceAsc", "artistAsc", "yearDesc"];
+  return validos.includes(v as OrdenColeccion) ? (v as OrdenColeccion) : ORDEN_POR_DEFECTO;
+}
+
+export function vistaDesdeParams(sp: FuenteParams): VistaColeccion {
+  const v = leerParam(sp, "view");
+  const validos: VistaColeccion[] = ["all", "top10", "rarezas"];
+  return validos.includes(v as VistaColeccion) ? (v as VistaColeccion) : VISTA_POR_DEFECTO;
+}
+
+/**
+ * Construye la query string a partir del estado. Es la contraparte exacta de las
+ * funciones de lectura: lo que se escribe aquí es lo que se lee allí.
+ *
+ * Los valores por defecto se omiten para que la URL no se llene de ruido cuando
+ * no hay ningún filtro puesto.
+ */
+export function construirQuery(
+  filtros: FiltrosColeccion,
+  orden: OrdenColeccion,
+  vista: VistaColeccion
+): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filtros.search.trim()) params.set("search", filtros.search);
+  if (filtros.genre) params.set("genre", filtros.genre);
+  if (filtros.style) params.set("style", filtros.style);
+  if (filtros.year) params.set("year", filtros.year);
+  if (filtros.label) params.set("label", filtros.label);
+  if (filtros.format && filtros.format !== "all") params.set("format", filtros.format);
+  if (filtros.condition) params.set("condition", filtros.condition);
+  if (orden !== ORDEN_POR_DEFECTO) params.set("sort", orden);
+  if (vista !== VISTA_POR_DEFECTO) params.set("view", vista);
+  return params;
 }
 
 /**
