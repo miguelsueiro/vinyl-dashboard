@@ -94,7 +94,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Tendencia con delta y leyenda del semáforo
 - [x] Fecha de última sincronización junto al valor total
 - [x] KPIs por encima del gráfico
-- [ ] Chips de filtros, etiquetas visibles, control segmentado
+- [x] Chips de filtros y etiquetas visibles (control segmentado, pendiente)
 - [x] Contador en vivo en carpetas (toasts en lugar de `alert()`, pendiente)
 - [ ] Una sola definición de rareza
 

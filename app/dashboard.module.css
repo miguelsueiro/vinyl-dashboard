@@ -1258,3 +1258,91 @@
 @media (prefers-reduced-motion: reduce) {
   .syncStale .syncDot { animation: none; }
 }
+
+/* ---- ETIQUETAS Y CHIPS DE FILTROS ----
+   Los desplegables usaban el texto de ejemplo como etiqueta ("Género..."), así
+   que al elegir un valor desaparecía el nombre del filtro y no había forma de
+   saber qué era cada uno ni qué había puesto. */
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 170px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  padding-left: 2px;
+}
+
+.filterField .select {
+  min-width: 0;
+  width: 100%;
+}
+
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -28px 0 32px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(30, 215, 96, 0.3);
+  background: rgba(30, 215, 96, 0.1);
+  border-radius: 30px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.chip:hover {
+  background: rgba(255, 77, 77, 0.12);
+  border-color: rgba(255, 77, 77, 0.4);
+}
+
+.chipLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.chipValue {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipIcon {
+  width: 12px !important;
+  height: 12px !important;
+  color: rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+}
+
+.chip:hover .chipIcon { color: #ff4d4d; }
+
+.clearFiltersBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.clearFiltersBtn:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
+}

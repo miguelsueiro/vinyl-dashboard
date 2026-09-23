@@ -206,71 +206,147 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
     </div>
   );
 
+  // Lo que hay filtrado ahora mismo, para enseñarlo como chips. Antes no se
+  // veía: los desplegables usan el texto de ejemplo como etiqueta, así que al
+  // elegir un valor desaparecía el nombre del filtro.
+  const chipsActivos: Array<{ id: string; etiqueta: string; valor: string; quitar: () => void }> = [];
+  if (search.trim()) chipsActivos.push({ id: "search", etiqueta: "Búsqueda", valor: search, quitar: () => setSearch("") });
+  if (formatFilter !== "all") chipsActivos.push({ id: "format", etiqueta: "Formato", valor: formatFilter, quitar: () => setFormatFilter("all") });
+  if (genre) chipsActivos.push({ id: "genre", etiqueta: "Género", valor: genre, quitar: () => setGenre("") });
+  if (styleFilter) chipsActivos.push({ id: "style", etiqueta: "Estilo", valor: styleFilter, quitar: () => setStyleFilter("") });
+  if (year) chipsActivos.push({ id: "year", etiqueta: "Año", valor: year, quitar: () => setYear("") });
+  if (labelFilter) chipsActivos.push({ id: "label", etiqueta: "Sello", valor: labelFilter, quitar: () => setLabelFilter("") });
+  if (conditionFilter) chipsActivos.push({
+    id: "condition",
+    etiqueta: "Estado",
+    valor: conditionFilter === "__unknown__" ? "Sin datos en Discogs" : conditionFilter,
+    quitar: () => setConditionFilter(""),
+  });
+
+  // Fuera de FiltersContent a propósito: en móvil los filtros van dentro de un
+  // acordeón plegado, así que dentro no se verían justo cuando más falta hacen.
+  const ChipsActivos = chipsActivos.length > 0 ? (
+    <div className={styles.chipsRow} aria-label="Filtros aplicados">
+      {chipsActivos.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          className={styles.chip}
+          onClick={c.quitar}
+          aria-label={`Quitar el filtro ${c.etiqueta}: ${c.valor}`}
+        >
+          <span className={styles.chipLabel}>{c.etiqueta}</span>
+          <span className={styles.chipValue}>{c.valor}</span>
+          <IconClose className={styles.chipIcon} />
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   const FiltersContent = (
     <div className={styles.filtersWrapper}>
       <div className={styles.searchRow}>
         <div className={styles.inputWrapper}>
           <IconSearch className={styles.inputIcon} />
-          <input 
-            placeholder="Buscar disco o artista..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            className={styles.inputSearch} 
+          <input
+            id="filtro-busqueda"
+            placeholder="Buscar disco o artista..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={styles.inputSearch}
             list="home-artists-list"
             autoComplete="off"
+            aria-label="Buscar disco o artista"
           />
           <datalist id="home-artists-list">
             {artists.map((a: string) => <option key={a} value={a} />)}
           </datalist>
         </div>
-        <button onClick={clearFilters} className={styles.clearFiltersBtn}>
+        <button onClick={clearFilters} className={styles.clearFiltersBtn} disabled={chipsActivos.length === 0}>
           <IconClose className={styles.btnIcon} /> Limpiar
         </button>
       </div>
+
       <div className={styles.filterGroup}>
-        <select value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
-          <option value="all">Formato</option>
-          <option value="LP">LP</option>
-          <option value="10in">10&quot;</option>
-          <option value="7in">7&quot;</option>
-          <option value="CD">CD</option>
-          <option value="Cassette">Cassette</option>
-          <option value="Vinilo">Otros Vinilos</option>
-        </select>
-        <select value={genre} onChange={(e) => setGenre(e.target.value)} className={styles.select}>
-          <option value="">Género...</option>
-          {genres.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <select value={styleFilter} onChange={(e) => setStyleFilter(e.target.value)} className={styles.select}>
-          <option value="">Estilo...</option>
-          {stylesList.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={year} onChange={(e) => setYear(e.target.value)} className={styles.select}>
-          <option value="">Año...</option>
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)} className={styles.select}>
-          <option value="">Sello...</option>
-          {labelsList.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
-        <select value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
-          <option value="">Estado...</option>
-          <option value="Mint (M)">Mint (M)</option>
-          <option value="Near Mint (NM or M-)">Near Mint (NM)</option>
-          <option value="Very Good Plus (VG+)">Very Good Plus (VG+)</option>
-          <option value="Very Good (VG)">Very Good (VG)</option>
-          <option value="Good Plus (G+)">Good Plus (G+)</option>
-          <option value="Good (G)">Good (G)</option>
-          <option value="Fair (F)">Fair (F)</option>
-          <option value="Poor (P)">Poor (P)</option>
-          <option value="__unknown__">Sin datos en Discogs</option>
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as OrdenColeccion)} className={styles.select}>
-          <option value="priceDesc">Mayor precio</option><option value="priceAsc">Menor precio</option><option value="artistAsc">A-Z</option><option value="yearDesc">Más reciente</option>
-        </select>
-        <select value={viewMode} onChange={(e) => setViewMode(e.target.value as VistaColeccion)} className={styles.select}>
-          <option value="all">Ver Colección</option><option value="top10">Top 10</option><option value="rarezas">Rarezas</option>
-        </select>
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-formato">Formato</label>
+          <select id="f-formato" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
+            <option value="all">Todos</option>
+            <option value="LP">LP</option>
+            <option value="10in">10&quot;</option>
+            <option value="7in">7&quot;</option>
+            <option value="CD">CD</option>
+            <option value="Cassette">Cassette</option>
+            <option value="Vinilo">Otros vinilos</option>
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-genero">Género</label>
+          <select id="f-genero" value={genre} onChange={(e) => setGenre(e.target.value)} className={styles.select}>
+            <option value="">Todos</option>
+            {genres.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-estilo">Estilo</label>
+          <select id="f-estilo" value={styleFilter} onChange={(e) => setStyleFilter(e.target.value)} className={styles.select}>
+            <option value="">Todos</option>
+            {stylesList.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-anio">Año</label>
+          <select id="f-anio" value={year} onChange={(e) => setYear(e.target.value)} className={styles.select}>
+            <option value="">Todos</option>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-sello">Sello</label>
+          <select id="f-sello" value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)} className={styles.select}>
+            <option value="">Todos</option>
+            {labelsList.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-estado">Estado</label>
+          <select id="f-estado" value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
+            <option value="">Todos</option>
+            <option value="Mint (M)">Mint (M)</option>
+            <option value="Near Mint (NM or M-)">Near Mint (NM)</option>
+            <option value="Very Good Plus (VG+)">Very Good Plus (VG+)</option>
+            <option value="Very Good (VG)">Very Good (VG)</option>
+            <option value="Good Plus (G+)">Good Plus (G+)</option>
+            <option value="Good (G)">Good (G)</option>
+            <option value="Fair (F)">Fair (F)</option>
+            <option value="Poor (P)">Poor (P)</option>
+            <option value="__unknown__">Sin datos en Discogs</option>
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-orden">Ordenar por</label>
+          <select id="f-orden" value={sortBy} onChange={(e) => setSortBy(e.target.value as OrdenColeccion)} className={styles.select}>
+            <option value="priceDesc">Mayor precio</option>
+            <option value="priceAsc">Menor precio</option>
+            <option value="artistAsc">A-Z</option>
+            <option value="yearDesc">Más reciente</option>
+          </select>
+        </div>
+
+        <div className={styles.filterField}>
+          <label className={styles.filterLabel} htmlFor="f-vista">Ver</label>
+          <select id="f-vista" value={viewMode} onChange={(e) => setViewMode(e.target.value as VistaColeccion)} className={styles.select}>
+            <option value="all">Toda la colección</option>
+            <option value="top10">Top 10</option>
+            <option value="rarezas">Rarezas</option>
+          </select>
+        </div>
       </div>
     </div>
   );
@@ -336,6 +412,8 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
             </button>
             <div id="filtros-movil">{showFiltersMobile && FiltersContent}</div>
           </div>
+
+          {ChipsActivos}
 
           <h2 className={styles.sectionTitle}>
             <div className={styles.titleText}>{sectionTitle()} <span className={styles.recordCountBadge}>{displayData.length}</span></div>
