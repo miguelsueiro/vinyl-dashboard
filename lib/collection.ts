@@ -336,3 +336,45 @@ export function calcularTendencia(
 
   return { precioAnterior, tendencia };
 }
+
+/**
+ * Cuánto ha cambiado un precio respecto a la lectura anterior.
+ *
+ * La tarjeta enseñaba el precio ANTERIOR junto a la flecha, lo que se leía como
+ * si esa fuera la cifra que había subido. Lo que interesa es la diferencia.
+ *
+ * El porcentaje es null cuando no hay con qué compararlo (precio anterior a
+ * cero), para no enseñar un infinito.
+ */
+export function variacion(actual: number, anterior: number): {
+  absoluta: number;
+  porcentaje: number | null;
+  /** Ya formateado y con signo, o null si no hay nada que enseñar. */
+  etiquetaPorcentaje: string | null;
+} {
+  const absoluta = redondear(actual - anterior);
+  const porcentaje = anterior > 0 ? Math.round(((actual - anterior) / anterior) * 1000) / 10 : null;
+
+  let etiquetaPorcentaje: string | null = null;
+  if (porcentaje !== null && absoluta !== 0) {
+    // El signo lo marca el cambio real, no el porcentaje redondeado: una subida
+    // de un céntimo sobre 793 € redondea a 0 y salía como "−0 %".
+    const signo = absoluta > 0 ? "+" : "−";
+    etiquetaPorcentaje = porcentaje === 0
+      ? `${signo}menos de 0,1 %`
+      : `${signo}${Math.abs(porcentaje).toLocaleString("es-ES")} %`;
+  }
+
+  return { absoluta, porcentaje, etiquetaPorcentaje };
+}
+
+/** "+3,20 €" / "−1,05 €". Con el signo delante, que es lo que se busca al leerlo. */
+export function formatearDelta(valor: number): string {
+  const signo = valor > 0 ? "+" : valor < 0 ? "−" : "";
+  const abs = new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(Math.abs(valor));
+  return `${signo}${abs}`;
+}

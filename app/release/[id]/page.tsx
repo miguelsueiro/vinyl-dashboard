@@ -10,6 +10,7 @@ import {
 import { getFiabilidad } from "@/lib/confidence";
 import {
   vecinos, filtrosDesdeParams, ordenDesdeParams, calcularTendencia, redondear,
+  variacion, formatearDelta,
 } from "@/lib/collection";
 import type {
   Disco, PrecioActual, PrecioHistorico, ReleaseDiscogs, PistaDiscogs, CreditoDiscogs,
@@ -129,6 +130,8 @@ export default async function ReleasePage({
   const copiasALaVenta = discogsRelease?.num_for_sale ?? latestPrice.num_for_sale;
   const fiabilidad = getFiabilidad(copiasALaVenta, recordsData.condition_vinyl);
 
+  const cambio = variacion(currentPriceVal, prevPrice);
+
   const discogsLink = `https://www.discogs.com/release/${id}`;
 
   const formatDate = (dateString: string) => {
@@ -228,9 +231,13 @@ export default async function ReleasePage({
                     {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
                     {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
                     {trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                    <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
+                    <span>
+                      {trend === "stable"
+                        ? "Estable"
+                        : `${formatearDelta(cambio.absoluta)}${cambio.etiquetaPorcentaje ? ` (${cambio.etiquetaPorcentaje})` : ""}`}
+                    </span>
                   </div>
-                  {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
+                  {trend !== "stable" && <div className={styles.prevPrice}>Antes: {formatEuro(prevPrice)}</div>}
                 </div>
               </div>
 

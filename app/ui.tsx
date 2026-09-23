@@ -21,6 +21,7 @@ import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
   construirQuery, FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
+  variacion, formatearDelta,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
   type PestanaDashboard,
 } from "@/lib/collection";
@@ -344,6 +345,23 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
               </button>
             </div>
           ) : (
+          <>
+          <div className={styles.confLegend}>
+            <span className={styles.confLegendTitle}>El punto del precio:</span>
+            <span className={styles.confLegendItem}>
+              <i className={`${styles.confDot} ${styles.confFirme}`} />
+              <b>Firme</b> — 5 copias o más a la venta
+            </span>
+            <span className={styles.confLegendItem}>
+              <i className={`${styles.confDot} ${styles.confOrientativo}`} />
+              <b>Orientativo</b> — pocas copias, o estado sin registrar
+            </span>
+            <span className={styles.confLegendItem}>
+              <i className={`${styles.confDot} ${styles.confDudoso}`} />
+              <b>Dudoso</b> — no lo vende nadie
+            </span>
+          </div>
+
           <div className={styles.grid}>
             {displayData.map((item) => (
               <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
@@ -374,17 +392,30 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
                       />
                       {formatEuro(item.price)}
                     </span>
-                    <div className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}>
-                      {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                      {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                      {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                      <span>{item.prevPrice > 0 ? formatEuro(item.prevPrice) : "--"}</span>
-                    </div>
+                    {(() => {
+                      // Antes aquí salía el precio ANTERIOR, que junto a una
+                      // flecha verde se lee como si fuera lo que ha subido.
+                      const v = variacion(item.price, item.prevPrice);
+                      return (
+                        <div
+                          className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}
+                          title={item.trend === "stable"
+                            ? "Sin cambios desde la última actualización"
+                            : `Antes ${formatEuro(item.prevPrice)}${v.etiquetaPorcentaje ? ` · ${v.etiquetaPorcentaje}` : ""}`}
+                        >
+                          {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                          {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                          {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
+                          <span>{item.trend === "stable" ? "igual" : formatearDelta(v.absoluta)}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </a>
             ))}
           </div>
+          </>
           )}
         </>
       ) : activeTab === "folders" ? (

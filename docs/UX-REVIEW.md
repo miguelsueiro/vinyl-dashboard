@@ -91,7 +91,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Pestañas en la URL (contexto de carpeta en la ficha, pendiente)
 - [ ] `Link` en vez de `<a>`; loader solo en primera carga, esqueletos después
 - [x] Ficha: precio junto a la portada (historial como gráfico, pendiente)
-- [ ] Tendencia con delta y leyenda del semáforo
+- [x] Tendencia con delta y leyenda del semáforo
 - [ ] Fecha de última sincronización junto al valor total
 - [ ] KPIs por encima del gráfico
 - [ ] Chips de filtros, etiquetas visibles, control segmentado
