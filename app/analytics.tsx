@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import StyleChart from "./genre-chart";
 import { IconStar, IconEuro, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
+import { separarTokens } from "@/lib/collection";
 
 // `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
 // esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
@@ -49,7 +50,7 @@ export default function AnalyticsView({ records, enriched }: any) {
   const styleValueData = useMemo(() => {
     const values: Record<string, number> = {};
     enriched.forEach((item: any) => {
-      const style = item.record?.style?.split(",")[0] || "Otros";
+      const style = separarTokens(item.record?.style)[0] || "Otros";
       values[style] = (values[style] || 0) + item.price;
     });
     return Object.entries(values)

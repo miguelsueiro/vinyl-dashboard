@@ -16,7 +16,7 @@ import {
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import {
-  cumpleFiltros, ordenarColeccion, redondear,
+  cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, construirQuery,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
 } from "@/lib/collection";
@@ -92,8 +92,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   const sortedData = useMemo(() => ordenarColeccion(enriched, sortBy), [enriched, sortBy]);
   
   const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
-  const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
-  const stylesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.style).filter(Boolean))).sort(), [records]);
+  // Multivalor: un disco puede ser "Hardcore, Punk, Noise" y debe aparecer bajo
+  // los tres, no solo bajo el primero.
+  const genres = useMemo(() => tokensUnicos(records, "genre"), [records]);
+  const stylesList = useMemo(() => tokensUnicos(records, "style"), [records]);
   const years = useMemo(() => Array.from(new Set(records.map((r: any) => String(r.year)).filter((y: string) => y && y !== "null" && y !== "0"))).sort(), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
 

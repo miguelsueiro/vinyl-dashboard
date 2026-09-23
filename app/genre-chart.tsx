@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { separarTokens } from "@/lib/collection";
 
 export default function StyleChart({ records }: { records: any[] }) {
   const chartData = useMemo(() => {
@@ -10,7 +11,7 @@ export default function StyleChart({ records }: { records: any[] }) {
     const counts: Record<string, number> = {};
     records.forEach(r => {
       // Tomamos el primer estilo (suelen venir varios)
-      const style = r.style?.split(",")[0] || "Otros";
+      const style = separarTokens(r.style)[0] || "Otros";
       counts[style] = (counts[style] || 0) + 1;
     });
 

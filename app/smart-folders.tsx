@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconFolder, IconTrash, IconEdit, IconClose, IconPlus, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import styles from "./dashboard.module.css";
+import { separarTokens, tokensUnicos } from "@/lib/collection";
 
 interface SmartFolder {
   id: string;
@@ -51,8 +52,9 @@ export default function SmartFoldersView({
 
   // Extract select option values dynamically from records
   const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
-  const genres = useMemo(() => Array.from(new Set(records.map((r: any) => r.genre).filter(Boolean))).sort(), [records]);
-  const stylesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.style).filter(Boolean))).sort(), [records]);
+  // Multivalor, igual que en la portada: ver lib/collection.ts
+  const genres = useMemo(() => tokensUnicos(records, "genre"), [records]);
+  const stylesList = useMemo(() => tokensUnicos(records, "style"), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
   const countriesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.country).filter(Boolean))).sort() as string[], [records]);
 
@@ -66,13 +68,17 @@ export default function SmartFoldersView({
         return false;
       }
       
-      // Genero rule
-      if (rules.genre && !item.record?.genre?.toLowerCase().includes(rules.genre.toLowerCase())) {
+      // Genero rule — token exacto: "Rock" no debe traer "Punk Rock"
+      if (rules.genre && !separarTokens(item.record?.genre).some(
+        (g: string) => g.toLowerCase() === rules.genre!.toLowerCase()
+      )) {
         return false;
       }
       
-      // Estilo rule
-      if (rules.style && !item.record?.style?.toLowerCase().includes(rules.style.toLowerCase())) {
+      // Estilo rule — token exacto
+      if (rules.style && !separarTokens(item.record?.style).some(
+        (s: string) => s.toLowerCase() === rules.style!.toLowerCase()
+      )) {
         return false;
       }
       

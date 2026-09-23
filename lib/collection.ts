@@ -81,6 +81,58 @@ function contiene(valor: string | null | undefined, aguja: string): boolean {
   return (valor || "").toLowerCase().includes(aguja.trim().toLowerCase());
 }
 
+/**
+ * Géneros y estilos llegan de Discogs como lista y se guardan en una sola
+ * columna, unidos por este separador.
+ *
+ * Antes solo se guardaba el primero y se perdía el resto: 890 discos (el 67%)
+ * tienen más de un estilo, y 52 de los 150 estilos reales no llegaban a existir
+ * en la app.
+ *
+ * NO se puede usar la coma: Discogs tiene un género que se llama literalmente
+ * "Folk, World, & Country" y partirlo por coma lo rompe en tres etiquetas falsas.
+ * La barra tampoco vale (existe "Funk / Soul"). La barra vertical no aparece en
+ * ninguno de los 165 valores de la colección, así que es la que se usa.
+ */
+export const SEPARADOR_MULTIVALOR = " | ";
+
+export function separarTokens(valor: string | null | undefined): string[] {
+  if (!valor) return [];
+  return valor
+    .split("|")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+export function unirTokens(valores: unknown): string | null {
+  if (!Array.isArray(valores) || valores.length === 0) return null;
+  const limpios = valores.map((v) => String(v).trim()).filter(Boolean);
+  return limpios.length ? limpios.join(SEPARADOR_MULTIVALOR) : null;
+}
+
+/**
+ * Coincidencia por token exacto, no por subcadena: eligiendo "Rock" en el
+ * desplegable se quiere el género Rock, no todo lo que contenga esa palabra
+ * (Punk Rock, Space Rock, Garage Rock...).
+ */
+function tieneToken(valor: string | null | undefined, buscado: string): boolean {
+  if (!buscado) return true;
+  const objetivo = buscado.trim().toLowerCase();
+  return separarTokens(valor).some((t) => t.toLowerCase() === objetivo);
+}
+
+/** Todos los valores distintos de una columna multivalor, ordenados. */
+export function tokensUnicos(
+  items: Array<{ [k: string]: unknown }>,
+  campo: string
+): string[] {
+  const set = new Set<string>();
+  for (const item of items) {
+    for (const t of separarTokens(item[campo] as string)) set.add(t);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+}
+
 function estadoSinDato(estado: string | null | undefined): boolean {
   return !estado || estado === "Desconocido";
 }
@@ -97,8 +149,10 @@ export function cumpleFiltros(item: ItemColeccion, filtros: FiltrosColeccion): b
     if (!coincide) return false;
   }
 
-  if (!contiene(r?.genre, filtros.genre)) return false;
-  if (!contiene(r?.style, filtros.style)) return false;
+  // Género y estilo son multivalor: coincidencia por token exacto.
+  if (!tieneToken(r?.genre, filtros.genre)) return false;
+  if (!tieneToken(r?.style, filtros.style)) return false;
+  // El sello es un texto libre y aquí sí interesa la subcadena.
   if (!contiene(r?.label, filtros.label)) return false;
 
   if (filtros.year && String(r?.year) !== filtros.year.trim()) return false;

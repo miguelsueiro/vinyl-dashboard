@@ -12,6 +12,18 @@ if (!supabaseUrl || !supabaseKey || !discogsToken) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Discogs manda géneros y estilos como lista. Antes se guardaba solo el primero
+// (info.genres?.[0]) y se tiraba el resto: 890 discos de 1.330 tienen más de un
+// estilo, y 52 de los 150 estilos reales no llegaban nunca a la base de datos.
+// El separador es " | " y no la coma porque existe el género "Folk, World, &
+// Country". Ver lib/collection.ts.
+const SEPARADOR = " | ";
+function unirLista(valores: unknown): string | null {
+  if (!Array.isArray(valores) || valores.length === 0) return null;
+  const limpios = valores.map(v => String(v).trim()).filter(Boolean);
+  return limpios.length ? limpios.join(SEPARADOR) : null;
+}
+
 async function runUpdate() {
   console.log(`🚀 Starting Full Sync & Price Update for user: ${discogsUsername}`);
   
@@ -66,8 +78,8 @@ async function runUpdate() {
           title: info.title,
           year: info.year,
           label: info.labels?.[0]?.name,
-          genre: info.genres?.[0],
-          style: info.styles?.[0],
+          genre: unirLista(info.genres),
+          style: unirLista(info.styles),
           format: fullFormat,
           cover_image: info.cover_image,
           condition_vinyl: vinylCond,
@@ -78,6 +90,8 @@ async function runUpdate() {
         await supabase.from("records")
           .update({ 
             format: fullFormat,
+            genre: unirLista(info.genres),
+            style: unirLista(info.styles),
             condition_vinyl: vinylCond,
             condition_sleeve: sleeveCond
           })
