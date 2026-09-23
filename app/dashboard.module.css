@@ -640,14 +640,18 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
+/* Estaban en opacity: 0 hasta pasar el ratón por encima, así que en táctil no
+   existían: no había forma de editar ni borrar una carpeta desde el móvil.
+   Ahora siempre visibles, algo atenuadas, y a plena opacidad al enfocarlas. */
 .folderCardActions {
   display: flex;
   gap: 8px;
-  opacity: 0;
+  opacity: 0.55;
   transition: opacity 0.2s;
 }
 
-.folderCard:hover .folderCardActions {
+.folderCard:hover .folderCardActions,
+.folderCardActions:focus-within {
   opacity: 1;
 }
 

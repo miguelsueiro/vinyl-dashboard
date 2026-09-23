@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconFolder, IconTrash, IconEdit, IconClose, IconPlus, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import styles from "./dashboard.module.css";
@@ -125,6 +125,32 @@ export default function SmartFoldersView({
   }, [folders, enriched]);
 
   const activeFolder = foldersWithStats.find(f => f.id === activeFolderId);
+
+  // El modal no se podía cerrar con Escape ni pinchando fuera, y el foco se
+  // quedaba detrás, en la página. Con teclado no había forma de salir.
+  const modalRef = useRef<HTMLDivElement>(null);
+  const focoPrevio = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!showModal) return;
+
+    focoPrevio.current = document.activeElement as HTMLElement | null;
+    // Al primer campo, que es lo que se viene a rellenar.
+    modalRef.current?.querySelector<HTMLInputElement>("input, select, textarea")?.focus();
+
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setShowModal(false);
+      }
+    };
+    document.addEventListener("keydown", alPulsar);
+
+    return () => {
+      document.removeEventListener("keydown", alPulsar);
+      focoPrevio.current?.focus?.();
+    };
+  }, [showModal]);
 
   const openCreateModal = () => {
     setEditingFolder(null);
@@ -323,10 +349,10 @@ export default function SmartFoldersView({
                   </div>
                 </div>
                 <div className={styles.folderCardActions}>
-                  <button className={styles.folderCardActionBtn} onClick={(e) => openEditModal(e, f)} title="Editar">
+                  <button className={styles.folderCardActionBtn} onClick={(e) => openEditModal(e, f)} title="Editar" aria-label={`Editar la carpeta ${f.name}`}>
                     <IconEdit className={styles.actionIcon} />
                   </button>
-                  <button className={styles.folderCardActionBtn} onClick={(e) => handleDelete(e, f.id)} title="Eliminar">
+                  <button className={styles.folderCardActionBtn} onClick={(e) => handleDelete(e, f.id)} title="Eliminar" aria-label={`Eliminar la carpeta ${f.name}`}>
                     <IconTrash className={styles.actionIcon} />
                   </button>
                 </div>
@@ -348,11 +374,25 @@ export default function SmartFoldersView({
 
       {/* FORM MODAL FOR CREATE & EDIT */}
       {showModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+        <div
+          className={styles.modalOverlay}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div
+            ref={modalRef}
+            className={styles.modalContent}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-modal-carpeta"
+          >
             <div className={styles.modalHeader}>
-              <h3>{editingFolder ? "Editar Carpeta Inteligente" : "Nueva Carpeta Inteligente"}</h3>
-              <button className={styles.closeModalBtn} onClick={() => setShowModal(false)}>
+              <h3 id="titulo-modal-carpeta">{editingFolder ? "Editar Carpeta Inteligente" : "Nueva Carpeta Inteligente"}</h3>
+              <button
+                type="button"
+                className={styles.closeModalBtn}
+                onClick={() => setShowModal(false)}
+                aria-label="Cerrar"
+              >
                 <IconClose />
               </button>
             </div>
