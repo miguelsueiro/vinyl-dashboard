@@ -93,7 +93,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Ficha: precio junto a la portada (historial como gráfico, pendiente)
 - [x] Tendencia con delta y leyenda del semáforo
 - [x] Fecha de última sincronización junto al valor total
-- [ ] KPIs por encima del gráfico
+- [x] KPIs por encima del gráfico
 - [ ] Chips de filtros, etiquetas visibles, control segmentado
 - [x] Contador en vivo en carpetas (toasts en lugar de `alert()`, pendiente)
 - [ ] Una sola definición de rareza

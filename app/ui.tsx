@@ -295,7 +295,6 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
 
       {activeTab === "collection" ? (
         <>
-          <div className={styles.homeChart}><InvestmentChart snapshots={snapshots} /></div>
           <div className={styles.kpiGrid}>
             <KPI
               label="Valor Total Colección"
@@ -306,7 +305,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
               footer={ultimaSync ? (
                 <span className={`${styles.syncStamp} ${ultimaSync.obsoleto ? styles.syncStale : ""}`}>
                   <i className={styles.syncDot} />
-                  {ultimaSync.obsoleto ? "Sin actualizar desde " : "Actualizado "}
+                  {ultimaSync.obsoleto ? "Sin actualizar desde" : "Actualizado"}
                   <time dateTime={ultimaSync.iso}>{ultimaSync.etiqueta}</time>
                 </span>
               ) : undefined}
@@ -314,6 +313,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
             <KPI label="Disco Más Caro" value={formatEuro(maxPrice)} subText={maxPriceItem ? `${maxPriceItem.record?.artist} - ${maxPriceItem.record?.title}` : ""} />
             <KPI label="Total Discos" value={`${records.length}`} />
           </div>
+
+          {/* El gráfico va DESPUÉS de los números: ocupa 400px de alto y
+              empujaba el valor total y el disco más caro por debajo del pliegue. */}
+          <div className={styles.homeChart}><InvestmentChart snapshots={snapshots} /></div>
 
           <div className={styles.desktopFiltersOnly}>
             {FiltersContent}
