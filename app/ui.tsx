@@ -311,7 +311,15 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
               <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
-                    <img src={item.record.cover_image} alt="" className={styles.coverImg} />
+                    <img
+                      src={item.record.cover_image}
+                      alt=""
+                      className={styles.coverImg}
+                      loading="lazy"
+                      decoding="async"
+                      width={320}
+                      height={320}
+                    />
                   ) : (
                     <IconVinyl className={styles.coverPlaceholderIcon} />
                   )}

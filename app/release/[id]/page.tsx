@@ -171,7 +171,14 @@ export default async function ReleasePage({
       <div className={styles.topSection}>
         <div className={styles.coverBox}>
           {recordsData.cover_image ? (
-            <img src={recordsData.cover_image} alt={recordsData.title} className={styles.coverImage} />
+            <img
+              src={recordsData.cover_image}
+              alt={`Portada de ${recordsData.artist ?? ""} – ${recordsData.title ?? ""}`}
+              className={styles.coverImage}
+              width={600}
+              height={600}
+              fetchPriority="high"
+            />
           ) : (
             <div className={styles.coverPlaceholder}>
               <IconVinyl className={styles.placeholderIcon} />

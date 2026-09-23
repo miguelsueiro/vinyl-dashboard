@@ -84,7 +84,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Acciones de carpeta visibles; Escape y clic fuera cierran el modal
 - [x] Texto secundario al 60 % y 12px mín.; `:focus-visible` global
 - [x] `aria-label` en hamburguesa, flechas y botones de icono
-- [ ] `loading="lazy"` en portadas
+- [x] `loading="lazy"` en portadas
 - [ ] "12 de 340" en la ficha y atajos ← →
 
 ### Fase 2 — Mejoras medias
