@@ -1,71 +1,137 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./dashboard.module.css";
 import { IconVinyl } from "@/components/icons";
 import Link from "next/link";
 
-export default function RandomView({ records, latestPrices }: any) {
-  const [spinning, setSpinning] = useState(true);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
-  // Seleccionamos una muestra de discos para la animación (para no saturar el DOM)
-  const sampleRecords = useMemo(() => {
-    // Escogemos menos para móviles para evitar crash de rendimiento
-    const limit = (typeof window !== 'undefined' && window.innerWidth < 800) ? 15 : 40;
-    return [...records].sort((a: any, b: any) => 0.5 - Math.random()).slice(0, limit);
-  }, [records]);
+interface DiscoAleatorio {
+  id: string | number;
+  discogs_release_id: string | number;
+  artist?: string | null;
+  title?: string | null;
+  cover_image?: string | null;
+}
 
-  const spin = () => {
-    if (sampleRecords.length === 0) return;
+interface Tirada {
+  limite: number;
+  muestra: DiscoAleatorio[];
+  /** Posición del ganador dentro de la muestra. */
+  ganador: number;
+  /** Posición que se está pintando ahora (va cambiando durante el giro). */
+  seleccion: number;
+}
+
+/** Barajado de Fisher-Yates. `sort(() => 0.5 - Math.random())` no reparte igual. */
+function mezclar<T>(origen: T[]): T[] {
+  const a = [...origen];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Elige el ganador entre TODOS los discos y luego le busca acompañantes para la
+ * animación.
+ *
+ * Antes se cogía una muestra de 40 al abrir la pestaña y se sorteaba siempre
+ * dentro de ella: los otros 1.290 discos no podían salir por mucho que le dieras
+ * a «probar de nuevo».
+ */
+function elegirTirada(todos: DiscoAleatorio[], limite: number): Tirada {
+  if (!todos || todos.length === 0) {
+    return { limite, muestra: [], ganador: 0, seleccion: 0 };
+  }
+  const ganador = todos[Math.floor(Math.random() * todos.length)];
+  const acompanantes = mezclar(todos.filter((r) => r !== ganador)).slice(0, Math.max(0, limite - 1));
+  const muestra = mezclar([ganador, ...acompanantes]);
+  const pos = muestra.indexOf(ganador);
+  return { limite, muestra, ganador: pos, seleccion: pos };
+}
+
+/** El coverflow con muchas portadas se atraganta en móvil. */
+function limitePorPantalla(): number {
+  return typeof window !== "undefined" && window.innerWidth < 800 ? 15 : 40;
+}
+
+export default function RandomView({ records }: { records: DiscoAleatorio[] }) {
+  // Inicializador perezoso en lugar de un efecto: esta vista solo se monta en
+  // cliente (la pestaña por defecto es Colección), así que no hay riesgo de que
+  // el servidor y el navegador pinten discos distintos.
+  //
+  // Al entrar ya se ve un disco, pero sin animación: antes giraba tres segundos
+  // cada vez que abrías la pestaña.
+  const [tirada, setTirada] = useState<Tirada>(() => elegirTirada(records, limitePorPantalla()));
+  const [spinning, setSpinning] = useState(false);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
+
+  const spin = useCallback(() => {
+    if (!records || records.length === 0) return;
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+
+    // Muestra nueva en cada tirada: cualquier disco de la colección puede salir.
+    const nueva = elegirTirada(records, limitePorPantalla());
+
+    const prefiereQuieto =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefiereQuieto || nueva.muestra.length === 0) {
+      setTirada(nueva);
+      setSpinning(false);
+      return;
+    }
+
+    setTirada(nueva);
     setSpinning(true);
-    const targetIndex = Math.floor(Math.random() * sampleRecords.length);
-    
-    // Animación de scroll
-    let current = 0;
-    const duration = 3000; // 3 segundos de spin
-    const start = Date.now();
+
+    const duracion = 3000;
+    const inicio = Date.now();
+    const total = nueva.muestra.length;
 
     const animate = () => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing out curve
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentIndex = Math.floor(easeOut * (targetIndex + sampleRecords.length * 2)) % sampleRecords.length;
-      
-      setSelectedIndex(currentIndex);
+      const progreso = Math.min((Date.now() - inicio) / duracion, 1);
+      const easeOut = 1 - Math.pow(1 - progreso, 3);
+      const idx = Math.floor(easeOut * (nueva.ganador + total * 2)) % total;
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
+      setTirada((t) => (t.seleccion === idx ? t : { ...t, seleccion: idx }));
+
+      if (progreso < 1) {
+        frameRef.current = requestAnimationFrame(animate);
       } else {
+        frameRef.current = null;
+        setTirada((t) => ({ ...t, seleccion: nueva.ganador }));
         setSpinning(false);
-        setSelectedIndex(targetIndex);
       }
     };
 
-    requestAnimationFrame(animate);
-  };
+    frameRef.current = requestAnimationFrame(animate);
+  }, [records]);
 
-  useEffect(() => {
-    spin();
-  }, []);
+  const { muestra, seleccion } = tirada;
+  const elegido = muestra[seleccion];
 
   return (
     <div className={styles.randomContainer}>
       <div className={styles.galleryWrapper}>
         <div className={styles.galleryStage}>
-          {sampleRecords.map((record, index) => {
-            const distance = Math.abs(index - selectedIndex);
-            const isActive = index === selectedIndex;
-            
-            // Estilos dinámicos para el efecto Coverflow
+          {muestra.map((record, index) => {
+            const distance = Math.abs(index - seleccion);
+            const isActive = index === seleccion;
+
             const style = {
               transform: `
                 translate(-50%, -50%)
-                translateX(${(index - selectedIndex) * 80}px) 
-                rotateY(${(index - selectedIndex) * -35}deg) 
+                translateX(${(index - seleccion) * 80}px)
+                rotateY(${(index - seleccion) * -35}deg)
                 translateZ(${isActive ? 200 : -150}px)
                 scale(${isActive ? 1.3 : 0.6})
               `,
@@ -76,12 +142,12 @@ export default function RandomView({ records, latestPrices }: any) {
             };
 
             const itemContent = (
-              <div 
+              <div
                 className={`${styles.galleryItem} ${isActive ? styles.activeItem : ""}`}
                 style={style}
               >
                 {record.cover_image ? (
-                  <img src={record.cover_image} alt="" className={styles.galleryImg} />
+                  <img src={record.cover_image} alt="" className={styles.galleryImg} loading="lazy" />
                 ) : (
                   <div className={styles.galleryPlaceholder}>
                     <IconVinyl className={styles.galleryPlaceholderIcon} />
@@ -92,7 +158,11 @@ export default function RandomView({ records, latestPrices }: any) {
 
             if (isActive && !spinning) {
               return (
-                <Link key={record.id} href={`/release/${record.discogs_release_id}`}>
+                <Link
+                  key={record.id}
+                  href={`/release/${record.discogs_release_id}`}
+                  aria-label={`Ver ${record.artist ?? ""} – ${record.title ?? ""}`}
+                >
                   {itemContent}
                 </Link>
               );
@@ -104,21 +174,18 @@ export default function RandomView({ records, latestPrices }: any) {
       </div>
 
       <div className={styles.randomInfoBox}>
-        {!spinning ? (
-          <div className={styles.revealInfo}>
-            <div className={styles.revealArtist}>{sampleRecords[selectedIndex]?.artist}</div>
-            <div className={styles.revealTitle}>{sampleRecords[selectedIndex]?.title}</div>
-          </div>
-        ) : (
-          <div className={styles.revealInfo} style={{ opacity: 0 }}>
-             <div className={styles.revealArtist}>-</div>
-             <div className={styles.revealTitle}>-</div>
-          </div>
-        )}
-        <button 
-          onClick={spin} 
+        <div
+          className={styles.revealInfo}
+          style={{ opacity: spinning ? 0 : 1 }}
+          aria-live="polite"
+        >
+          <div className={styles.revealArtist}>{elegido?.artist ?? "-"}</div>
+          <div className={styles.revealTitle}>{elegido?.title ?? "-"}</div>
+        </div>
+        <button
+          onClick={spin}
           className={styles.spinAgainBtn}
-          disabled={spinning}
+          disabled={spinning || !records?.length}
         >
           {spinning ? "Escogiendo..." : "¡Probar de nuevo!"}
         </button>
