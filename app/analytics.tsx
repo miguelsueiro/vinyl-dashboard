@@ -194,7 +194,7 @@ export default function AnalyticsView({ records, enriched }: any) {
               </div>
             </Link>
           )) : (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', gridColumn: '1 / -1' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.65)', fontSize: '14px', gridColumn: '1 / -1' }}>
               No se han detectado variaciones en la última sincronización
             </div>
           )}

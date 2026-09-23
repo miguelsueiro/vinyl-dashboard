@@ -16,7 +16,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -116,7 +116,7 @@
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.65);
   margin-bottom: 8px;
 }
 
@@ -233,7 +233,7 @@
 
 .cancelBtn {
   background: transparent;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255, 255, 255, 0.65);
   padding: 10px 20px;
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.1);
@@ -257,7 +257,7 @@
 
 .condLabel {
   font-weight: bold;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255, 255, 255, 0.65);
   margin-right: 8px;
 }
 
@@ -295,7 +295,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   margin-bottom: 8px;
 }
 
@@ -318,7 +318,7 @@
 
 .prevPrice {
   font-size: 14px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.65);
   font-weight: 500;
 }
 
@@ -334,7 +334,7 @@
 
 .trendUp { color: #1ED760; background: rgba(30, 215, 96, 0.1); }
 .trendDown { color: #ff4d4d; background: rgba(255, 77, 77, 0.1); }
-.trendStable { color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+.trendStable { color: rgba(255, 255, 255, 0.65); background: rgba(255,255,255,0.05); }
 
 .trendIcon {
   width: 12px !important;
@@ -350,7 +350,7 @@
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 24px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255, 255, 255, 0.65);
   text-align: center;
 }
 
@@ -372,7 +372,7 @@
 }
 
 .historyDate {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .historyPrice {
@@ -446,10 +446,10 @@
 
 .metaLabel {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255, 255, 255, 0.65);
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -477,10 +477,10 @@
 }
 
 .extraTitle {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255, 255, 255, 0.65);
   font-weight: 700;
   margin: 0 0 20px;
 }
@@ -508,8 +508,8 @@
 }
 
 .trackHeading {
-  color: rgba(255,255,255,0.35);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding-top: 16px;
@@ -517,9 +517,9 @@
 }
 
 .trackPos {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.65);
   min-width: 28px;
   font-variant-numeric: tabular-nums;
 }
@@ -532,7 +532,7 @@
 
 .trackDur {
   font-size: 12px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.65);
   font-variant-numeric: tabular-nums;
 }
 
@@ -568,10 +568,10 @@
 }
 
 .creditRole {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255, 255, 255, 0.65);
   font-weight: 600;
 }
 
@@ -583,7 +583,7 @@
 .notes {
   font-size: 13px;
   line-height: 1.7;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255, 255, 255, 0.65);
   white-space: pre-line;
   margin: 0;
 }
@@ -642,7 +642,7 @@
 }
 
 .confReason {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   font-weight: 500;
 }
 

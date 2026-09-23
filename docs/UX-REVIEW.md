@@ -82,7 +82,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Re-muestrear en Randomize y no girar al entrar
 - [x] Estado vacío en el grid de Colección
 - [x] Acciones de carpeta visibles; Escape y clic fuera cierran el modal
-- [ ] Texto secundario al 60 % y 12px mín.; `:focus-visible` global
+- [x] Texto secundario al 60 % y 12px mín.; `:focus-visible` global
 - [ ] `aria-label` en hamburguesa, flechas y botones de icono
 - [ ] `loading="lazy"` en portadas
 - [ ] "12 de 340" en la ficha y atajos ← →

@@ -66,7 +66,7 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
 
   if (chartData.length === 0 && snapshots.length > 0) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 28, color: 'rgba(255,255,255,0.4)' }}>
+      <div style={{ padding: 40, textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 28, color: 'rgba(255,255,255,0.65)' }}>
         No hay datos para este periodo.
       </div>
     );
@@ -75,16 +75,16 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
   return (
     <div style={{ width: "100%", minHeight: 400, background: "rgba(255,255,255,0.02)", borderRadius: 28, padding: "28px 32px", marginBottom: 48, border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <h3 style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}>
+        <h3 style={{ margin: 0, color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}>
           Evolución de la Colección
         </h3>
         
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
           {range === "CUSTOM" && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginRight: 12 }}>
-              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 11 }} />
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>-</span>
-              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 11 }} />
+              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 12 }} />
+              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>-</span>
+              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', color: '#fff', fontSize: 12 }} />
             </div>
           )}
           
@@ -99,7 +99,7 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
                   border: 'none',
                   background: range === r ? '#fff' : 'transparent',
                   color: range === r ? '#000' : 'rgba(255,255,255,0.5)',
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 800,
                   cursor: 'pointer',
                   transition: 'all 0.2s'
@@ -122,8 +122,8 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
           </defs>
           <XAxis 
             dataKey="date" 
-            stroke="rgba(255,255,255,0.3)" 
-            fontSize={10} 
+            stroke="rgba(255,255,255,0.65)" 
+            fontSize={12} 
             fontWeight={600}
             tickLine={false} 
             axisLine={false} 
@@ -131,8 +131,8 @@ export default function InvestmentChart({ snapshots }: { snapshots: any[] }) {
           />
           <YAxis 
             domain={['auto', 'auto']} 
-            stroke="rgba(255,255,255,0.3)" 
-            fontSize={10} 
+            stroke="rgba(255,255,255,0.65)" 
+            fontSize={12} 
             fontWeight={600}
             tickFormatter={(val) => `${Math.round(val).toLocaleString('es-ES')}€`}
             tickLine={false}
