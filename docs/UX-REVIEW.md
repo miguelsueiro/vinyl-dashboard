@@ -99,7 +99,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Una sola definición de rareza
 
 ### Fase 3 — Estructural
-- [ ] Sistema de diseño mínimo: tokens, `RecordCard`, `FilterBar`, `Modal`, `Toast`, `EmptyState`
+- [x] Tokens de color y `RecordCard` (FilterBar, Modal, Toast, EmptyState: pendientes)
 - [ ] Modelo de filtros único para Colección y Carpetas
 - [ ] Insights navegable; fusionar gráficos de estilos
 - [ ] Carga paginada / en servidor; navegación sin descargar toda la colección

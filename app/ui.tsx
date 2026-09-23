@@ -2,7 +2,7 @@
 
 import { useMemo, useState, Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import RecordCard from "@/components/RecordCard";
 import { useSearchParams } from "next/navigation";
 import styles from "./dashboard.module.css";
 
@@ -11,8 +11,7 @@ import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
 import SmartFoldersView from "./smart-folders";
 import {
-  IconVinyl, IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose,
-  IconArrowUp, IconArrowDown, IconMinus
+  IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import { esRaro } from "@/lib/rareza";
@@ -24,7 +23,6 @@ import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
   construirQuery, FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
-  variacion, formatearDelta,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
   type PestanaDashboard,
 } from "@/lib/collection";
@@ -457,55 +455,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
 
           <div className={styles.grid}>
             {displayData.map((item) => (
-              <Link key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
-                <div className={styles.coverWrapper}>
-                  {item.record?.cover_image ? (
-                    <img
-                      src={item.record.cover_image}
-                      alt=""
-                      className={styles.coverImg}
-                      loading="lazy"
-                      decoding="async"
-                      width={320}
-                      height={320}
-                    />
-                  ) : (
-                    <IconVinyl className={styles.coverPlaceholderIcon} />
-                  )}
-                </div>
-                <div className={styles.cardInfo}>
-                  <div className={styles.recordArtist}>{item.record?.artist}</div>
-                  <div className={styles.recordTitle}>{item.record?.title}</div>
-                  <div className={styles.recordPrice}>
-                    <span className={styles.priceWithDot}>
-                      <i
-                        className={`${styles.confDot} ${styles["conf" + item.confidence.nivel.charAt(0).toUpperCase() + item.confidence.nivel.slice(1)]}`}
-                        title={`${item.confidence.etiqueta} — ${item.confidence.motivo}`}
-                        aria-label={`Fiabilidad: ${item.confidence.etiqueta}. ${item.confidence.motivo}`}
-                      />
-                      {formatEuro(item.price)}
-                    </span>
-                    {(() => {
-                      // Antes aquí salía el precio ANTERIOR, que junto a una
-                      // flecha verde se lee como si fuera lo que ha subido.
-                      const v = variacion(item.price, item.prevPrice);
-                      return (
-                        <div
-                          className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}
-                          title={item.trend === "stable"
-                            ? "Sin cambios desde la última actualización"
-                            : `Antes ${formatEuro(item.prevPrice)}${v.etiquetaPorcentaje ? ` · ${v.etiquetaPorcentaje}` : ""}`}
-                        >
-                          {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                          {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                          {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                          <span>{item.trend === "stable" ? "igual" : formatearDelta(v.absoluta)}</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </Link>
+              <RecordCard key={item.release_id} item={item} href={getReleaseUrl(item.release_id)} />
             ))}
           </div>
           </>

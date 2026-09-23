@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
+import RecordCard from "@/components/RecordCard";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
-import { IconTrash, IconEdit, IconClose, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
+import { IconTrash, IconEdit, IconClose } from "@/components/icons";
 import styles from "./dashboard.module.css";
-import { separarTokens, tokensUnicos, variacion, formatearDelta } from "@/lib/collection";
+import { separarTokens, tokensUnicos } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
 
 interface SmartFolder {
@@ -307,36 +307,7 @@ export default function SmartFoldersView({
 
           <div className={styles.grid}>
             {activeFolder.items.map((item) => (
-              <Link key={item.release_id} href={urlDisco(item.release_id)} className={styles.card}>
-                <div className={styles.coverWrapper}>
-                  {item.record?.cover_image ? (
-                    <img
-                      src={item.record.cover_image}
-                      alt=""
-                      className={styles.coverImg}
-                      loading="lazy"
-                      decoding="async"
-                      width={320}
-                      height={320}
-                    />
-                  ) : (
-                    <IconVinyl className={styles.coverPlaceholderIcon} />
-                  )}
-                </div>
-                <div className={styles.cardInfo}>
-                  <div className={styles.recordArtist}>{item.record?.artist}</div>
-                  <div className={styles.recordTitle}>{item.record?.title}</div>
-                  <div className={styles.recordPrice}>
-                    <span>{formatEuro(item.price)}</span>
-                    <div className={`${styles.trendIndicator} ${styles["trend" + item.trend.charAt(0).toUpperCase() + item.trend.slice(1)]}`}>
-                      {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                      {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                      {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                      <span>{item.trend === "stable" ? "igual" : formatearDelta(variacion(item.price, item.prevPrice).absoluta)}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <RecordCard key={item.release_id} item={item} href={urlDisco(item.release_id)} />
             ))}
             {activeFolder.items.length === 0 && (
               <div className={styles.emptyFolderMessage}>
