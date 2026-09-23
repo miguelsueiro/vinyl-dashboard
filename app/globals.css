@@ -6,8 +6,51 @@ html {
 }
 
 :root {
-  --background: #090909;
-  --foreground: #ffffff;
+  /* ---- SISTEMA DE COLOR ----
+     Antes había 276 valores escritos a mano repartidos por los CSS, el mismo
+     verde 42 veces y el mismo gris de dos formas distintas según el sitio
+     (con espacios y sin ellos). Cambiar el acento obligaba a buscar y
+     reemplazar por todo el proyecto. */
+
+  /* Fondos, del más hundido al más elevado */
+  --fondo: #090909;
+  --superficie-tenue: rgba(255, 255, 255, 0.02);
+  --superficie: rgba(255, 255, 255, 0.03);
+  --campo: rgba(255, 255, 255, 0.04);
+  --superficie-alta: rgba(255, 255, 255, 0.05);
+  --superficie-hover: rgba(255, 255, 255, 0.08);
+  --superficie-activa: rgba(255, 255, 255, 0.12);
+
+  /* Bordes */
+  --borde-suave: rgba(255, 255, 255, 0.05);
+  --borde-tenue: rgba(255, 255, 255, 0.06);
+  --borde: rgba(255, 255, 255, 0.08);
+  --borde-fuerte: rgba(255, 255, 255, 0.1);
+  --borde-marcado: rgba(255, 255, 255, 0.18);
+
+  /* Texto. El secundario está al 65% y no menos: por debajo no llega al
+     contraste mínimo de 4,5:1 sobre este fondo. */
+  --texto: #ffffff;
+  --texto-suave: rgba(255, 255, 255, 0.85);
+  --texto-secundario: rgba(255, 255, 255, 0.65);
+  --texto-decorativo: rgba(255, 255, 255, 0.25);
+
+  /* Acento */
+  --acento: #1ED760;
+  --acento-tenue: rgba(30, 215, 96, 0.1);
+  --acento-borde: rgba(30, 215, 96, 0.3);
+
+  /* Semánticos: el verde del acento también significa "bien", así que el
+     semáforo de fiabilidad y las tendencias los reutilizan. */
+  --alerta: #e8b339;
+  --alerta-tenue: rgba(232, 179, 57, 0.1);
+  --peligro: #ff4d4d;
+  --peligro-tenue: rgba(255, 77, 77, 0.1);
+  --peligro-borde: rgba(255, 77, 77, 0.3);
+
+  /* Compatibilidad: los usa body y algún estilo suelto. */
+  --background: var(--fondo);
+  --foreground: var(--texto);
 }
 
 body {
@@ -37,7 +80,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 40px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--superficie-alta);
   margin-bottom: 40px;
   position: sticky;
   top: 0;
@@ -77,7 +120,7 @@ body {
    navegando con el tabulador no se veía dónde estabas. Se usa :focus-visible y
    no :focus para que el anillo solo salga con teclado, no al hacer clic. */
 :focus-visible {
-  outline: 2px solid #1ED760;
+  outline: 2px solid var(--acento);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -91,7 +134,7 @@ button:focus-visible {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #1ED760;
+  outline: 2px solid var(--acento);
   outline-offset: 1px;
 }
 

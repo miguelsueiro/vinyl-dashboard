@@ -16,23 +16,23 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
   padding: 8px 16px;
-  background: rgba(255,255,255,0.05);
+  background: var(--superficie-alta);
   border-radius: 8px;
 }
 
 .backBtn:hover {
   color: #fff;
-  background: rgba(255,255,255,0.1);
+  background: var(--borde-fuerte);
 }
 
 .backBtn span {
-  color: #1ED760;
+  color: var(--acento);
   font-weight: bold;
 }
 
@@ -47,8 +47,8 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde-fuerte);
   border-radius: 12px;
   color: #fff;
   transition: all 0.2s;
@@ -56,8 +56,8 @@
 }
 
 .navBtn:hover:not(.disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #1ED760;
+  background: var(--borde-fuerte);
+  border-color: var(--acento);
   transform: translateY(-2px);
 }
 
@@ -81,7 +81,7 @@
 .coverBox {
   flex: 0 0 400px;
   height: 400px;
-  background: rgba(255,255,255,0.03);
+  background: var(--superficie);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0,0,0,0.6);
@@ -116,7 +116,7 @@
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   margin-bottom: 8px;
 }
 
@@ -136,12 +136,12 @@
 }
 
 .tag {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--borde-fuerte);
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255,255,255,0.9);
 }
 
 /* STREAMING SECTION STYLES */
@@ -159,7 +159,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(90deg, #1db954, #1ed760);
+  background: linear-gradient(90deg, #1db954, var(--acento));
   color: #fff;
   font-weight: 700;
   text-decoration: none;
@@ -176,8 +176,8 @@
 }
 
 .editToggleBtn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde-fuerte);
   color: #fff;
   width: 38px;
   height: 38px;
@@ -190,7 +190,7 @@
 }
 
 .editToggleBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--borde-fuerte);
 }
 
 .streamForm {
@@ -201,8 +201,8 @@
 
 .streamInput {
   padding: 12px 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde-fuerte);
   color: #fff;
   border-radius: 10px;
   outline: none;
@@ -212,7 +212,7 @@
 }
 
 .streamInput:focus {
-  border-color: #1ED760;
+  border-color: var(--acento);
 }
 
 .formActions {
@@ -233,10 +233,10 @@
 
 .cancelBtn {
   background: transparent;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   padding: 10px 20px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--borde-fuerte);
   cursor: pointer;
   font-size: 13px;
 }
@@ -244,7 +244,7 @@
 .conditionsBox {
   display: flex;
   gap: 20px;
-  background: rgba(255,255,255,0.05);
+  background: var(--superficie-alta);
   padding: 16px 20px;
   border-radius: 12px;
   margin-bottom: 24px;
@@ -257,13 +257,13 @@
 
 .condLabel {
   font-weight: bold;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   margin-right: 8px;
 }
 
 .discogsLink {
   display: inline-block;
-  background: rgba(255,255,255,0.1);
+  background: var(--borde-fuerte);
   color: #fff;
   padding: 10px 20px;
   border-radius: 8px;
@@ -281,8 +281,8 @@
    no en una tarjeta centrada debajo de todo. De ahí que vaya alineado a la
    izquierda y sin ancho máximo: lo marca la columna. */
 .priceBlock {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 18px 22px;
   margin: 4px 0 20px;
@@ -293,7 +293,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   margin-bottom: 8px;
 }
 
@@ -318,7 +318,7 @@
 
 .prevPrice {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-weight: 500;
 }
 
@@ -332,9 +332,9 @@
   border-radius: 8px;
 }
 
-.trendUp { color: #1ED760; background: rgba(30, 215, 96, 0.1); }
-.trendDown { color: #ff4d4d; background: rgba(255, 77, 77, 0.1); }
-.trendStable { color: rgba(255, 255, 255, 0.65); background: rgba(255,255,255,0.05); }
+.trendUp { color: var(--acento); background: var(--acento-tenue); }
+.trendDown { color: var(--peligro); background: var(--peligro-tenue); }
+.trendStable { color: var(--texto-secundario); background: var(--superficie-alta); }
 
 .trendIcon {
   width: 12px !important;
@@ -350,7 +350,7 @@
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 24px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   text-align: center;
 }
 
@@ -363,7 +363,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--superficie-alta);
   font-size: 14px;
 }
 
@@ -372,7 +372,7 @@
 }
 
 .historyDate {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
 }
 
 .historyPrice {
@@ -425,7 +425,7 @@
 .extraInfo {
   margin-top: 60px;
   padding-top: 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--borde);
 }
 
 .metaRow {
@@ -433,7 +433,7 @@
   gap: 0;
   flex-wrap: wrap;
   margin-bottom: 48px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -442,7 +442,7 @@
   flex: 1;
   min-width: 140px;
   padding: 20px 24px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid var(--borde);
 }
 
 .metaItem:last-child {
@@ -454,7 +454,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -485,7 +485,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-weight: 700;
   margin: 0 0 20px;
 }
@@ -504,7 +504,7 @@
   align-items: baseline;
   gap: 16px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--superficie-alta);
   font-size: 14px;
 }
 
@@ -513,7 +513,7 @@
 }
 
 .trackHeading {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -524,7 +524,7 @@
 .trackPos {
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   min-width: 28px;
   font-variant-numeric: tabular-nums;
 }
@@ -537,7 +537,7 @@
 
 .trackDur {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-variant-numeric: tabular-nums;
 }
 
@@ -564,7 +564,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--superficie-alta);
   font-size: 13px;
 }
 
@@ -576,19 +576,19 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-weight: 600;
 }
 
 .creditName {
-  color: rgba(255,255,255,0.85);
+  color: var(--texto-suave);
   font-weight: 500;
 }
 
 .notes {
   font-size: 13px;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   white-space: pre-line;
   margin: 0;
 }
@@ -600,7 +600,7 @@
   }
   .metaItem {
     border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid var(--borde);
   }
   .metaItem:last-child {
     border-bottom: none;
@@ -629,7 +629,7 @@
   gap: 8px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--borde-tenue);
   font-size: 13px;
 }
 
@@ -647,13 +647,13 @@
 }
 
 .confReason {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
   font-weight: 500;
 }
 
-.confFirme { color: #1ED760; }
-.confOrientativo { color: #e8b339; }
-.confDudoso { color: #ff4d4d; }
+.confFirme { color: var(--acento); }
+.confOrientativo { color: var(--alerta); }
+.confDudoso { color: var(--peligro); }
 
 /* Posición dentro de la lista filtrada: "12 de 340". Se calculaba desde hace
    tiempo pero no se mostraba en ninguna parte. */
@@ -665,13 +665,13 @@
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--texto-suave);
   white-space: nowrap;
 }
 
 .navPositionOf {
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--texto-secundario);
 }
 
 /* ---- ESQUELETO MIENTRAS CARGA LA FICHA ----
@@ -681,9 +681,9 @@
 .skel {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.08) 37%,
-    rgba(255, 255, 255, 0.04) 63%
+    var(--campo) 25%,
+    var(--borde) 37%,
+    var(--campo) 63%
   );
   background-size: 400% 100%;
   animation: skelShimmer 1.4s ease-in-out infinite;
