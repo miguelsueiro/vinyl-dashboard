@@ -216,6 +216,31 @@ export default async function ReleasePage({
               ))}
             </div>
 
+            {/* El precio es lo que se viene a mirar: va arriba, junto a la
+                portada. Antes quedaba por debajo del tracklist, los créditos y
+                las notas, y había que bajar bastante para verlo. */}
+            <div className={styles.priceBlock}>
+              <div className={styles.priceLabel}>Valor estimado de mercado</div>
+              <div className={styles.priceValue}>
+                <span>{formatEuro(currentPriceVal)}</span>
+                <div className={styles.trendContainer}>
+                  <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
+                    {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
+                    {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
+                    {trend === "stable" && <IconMinus className={styles.trendIcon} />}
+                    <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
+                  </div>
+                  {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
+                </div>
+              </div>
+
+              <div className={`${styles.confidenceRow} ${styles["conf" + fiabilidad.nivel.charAt(0).toUpperCase() + fiabilidad.nivel.slice(1)]}`}>
+                <span className={styles.confDot} />
+                <span className={styles.confLabel}>{fiabilidad.etiqueta}</span>
+                <span className={styles.confReason}>{fiabilidad.motivo}</span>
+              </div>
+            </div>
+
             <StreamingSection id={id} initialUrl={recordsData.streaming_url} />
 
             <div className={styles.conditionsBox}>
@@ -314,30 +339,6 @@ export default async function ReleasePage({
           </div>
         </div>
       )}
-
-      <div className={styles.priceGrid}>
-        <div className={styles.priceCard}>
-          <div className={styles.priceLabel}>Valor Estimado de Mercado</div>
-          <div className={styles.priceValue}>
-            <span>{formatEuro(currentPriceVal)}</span>
-            <div className={styles.trendContainer}>
-              <div className={`${styles.trendIndicator} ${styles["trend" + trend.charAt(0).toUpperCase() + trend.slice(1)]}`}>
-                {trend === "up" && <IconArrowUp className={styles.trendIcon} />}
-                {trend === "down" && <IconArrowDown className={styles.trendIcon} />}
-                {trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                <span>{trend === "stable" ? "Estable" : formatEuro(Math.abs(currentPriceVal - prevPrice))}</span>
-              </div>
-              {trend !== "stable" && <div className={styles.prevPrice}>Anterior: {formatEuro(prevPrice)}</div>}
-            </div>
-          </div>
-
-          <div className={`${styles.confidenceRow} ${styles["conf" + fiabilidad.nivel.charAt(0).toUpperCase() + fiabilidad.nivel.slice(1)]}`}>
-            <span className={styles.confDot} />
-            <span className={styles.confLabel}>{fiabilidad.etiqueta}</span>
-            <span className={styles.confReason}>{fiabilidad.motivo}</span>
-          </div>
-        </div>
-      </div>
 
       {currentPrices && currentPrices.length > 0 && (
         <div className={styles.history}>

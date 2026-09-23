@@ -277,18 +277,16 @@
   background: rgba(255,255,255,0.2);
 }
 
-.priceGrid {
-  margin-bottom: 40px;
-  margin-top: 60px;
-}
-
-.priceCard {
+/* El precio vive ahora dentro de la columna de información, junto a la portada,
+   no en una tarjeta centrada debajo de todo. De ahí que vaya alineado a la
+   izquierda y sin ancho máximo: lo marca la columna. */
+.priceBlock {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 24px 32px;
-  max-width: 440px;
-  margin: 0 auto;
-  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin: 4px 0 20px;
+  text-align: left;
 }
 
 .priceLabel {
@@ -300,13 +298,15 @@
 }
 
 .priceValue {
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 800;
   color: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  line-height: 1.1;
 }
 
 .trendContainer {
@@ -408,9 +408,14 @@
     margin: 0 auto 24px;
   }
 
-  .priceCard {
-    max-width: 100%;
+  /* En móvil la columna de info ya va centrada, y el precio la acompaña. */
+  .priceBlock {
     text-align: center;
+  }
+
+  .priceValue,
+  .confidenceRow {
+    justify-content: center;
   }
 }
 
@@ -619,11 +624,11 @@
 .confidenceRow {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 13px;
 }
