@@ -649,3 +649,22 @@
 .confFirme { color: #1ED760; }
 .confOrientativo { color: #e8b339; }
 .confDudoso { color: #ff4d4d; }
+
+/* Posición dentro de la lista filtrada: "12 de 340". Se calculaba desde hace
+   tiempo pero no se mostraba en ninguna parte. */
+.navPosition {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.navPositionOf {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+}

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import styles from "./release.module.css";
 import StreamingSection from "./streaming-section";
+import KeyboardNav from "./keyboard-nav";
 import {
   IconVinyl, IconChevronLeft, IconChevronRight,
   IconArrowUp, IconArrowDown, IconMinus
@@ -146,20 +147,32 @@ export default async function ReleasePage({
 
   return (
     <div className={styles.releaseRoot}>
+      <KeyboardNav
+        prevUrl={prevId ? getNavUrl(prevId) : null}
+        nextUrl={nextId ? getNavUrl(nextId) : null}
+      />
       <div className={styles.navRow}>
         <Link href={`/${new URLSearchParams(sp as any).toString() ? `?${new URLSearchParams(sp as any).toString()}` : ""}`} className={styles.backBtn}>
           <span>←</span> Volver
         </Link>
         <nav className={styles.quickNav} aria-label="Navegar por la colección">
           {prevId ? (
-            <Link href={getNavUrl(prevId)} className={styles.navBtn} title="Disco anterior" aria-label="Disco anterior" rel="prev">
+            <Link href={getNavUrl(prevId)} className={styles.navBtn} title="Disco anterior (flecha izquierda)" aria-label="Disco anterior" rel="prev">
               <IconChevronLeft className={styles.navIcon} />
             </Link>
           ) : (
             <div className={`${styles.navBtn} ${styles.disabled}`} aria-hidden="true"><IconChevronLeft className={styles.navIcon} /></div>
           )}
+
+          {/* La posición ya se calculaba y no se enseñaba en ninguna parte. */}
+          {posicion > 0 && (
+            <span className={styles.navPosition} aria-live="polite">
+              {posicion} <span className={styles.navPositionOf}>de</span> {totalEnLista}
+            </span>
+          )}
+
           {nextId ? (
-            <Link href={getNavUrl(nextId)} className={styles.navBtn} title="Disco siguiente" aria-label="Disco siguiente" rel="next">
+            <Link href={getNavUrl(nextId)} className={styles.navBtn} title="Disco siguiente (flecha derecha)" aria-label="Disco siguiente" rel="next">
               <IconChevronRight className={styles.navIcon} />
             </Link>
           ) : (

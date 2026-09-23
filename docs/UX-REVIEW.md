@@ -85,7 +85,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Texto secundario al 60 % y 12px mín.; `:focus-visible` global
 - [x] `aria-label` en hamburguesa, flechas y botones de icono
 - [x] `loading="lazy"` en portadas
-- [ ] "12 de 340" en la ficha y atajos ← →
+- [x] "12 de 340" en la ficha y atajos ← →
 
 ### Fase 2 — Mejoras medias
 - [ ] Pestañas en la URL y contexto de carpeta en la ficha
