@@ -277,6 +277,24 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
             <div className={styles.titleText}>{sectionTitle()} <span className={styles.recordCountBadge}>{displayData.length}</span></div>
             <div className={styles.filteredValue}>Total selección: <span>{formatEuro(filteredTotalValue)}</span></div>
           </h2>
+          {displayData.length === 0 ? (
+            <div className={styles.emptyGrid}>
+              <IconSearch className={styles.emptyGridIcon} />
+              <h3 className={styles.emptyGridTitle}>
+                {viewMode === "rarezas"
+                  ? "Ninguna rareza con estos filtros"
+                  : "Ningún disco coincide"}
+              </h3>
+              <p className={styles.emptyGridText}>
+                {viewMode === "rarezas"
+                  ? "Las rarezas son discos de 40 € o más que ahora mismo no vende nadie. Prueba a quitar algún filtro."
+                  : "Hay 1.330 discos en la colección, pero ninguno cumple lo que has pedido. Prueba a quitar algún filtro."}
+              </p>
+              <button onClick={clearFilters} className={styles.emptyGridBtn}>
+                <IconClose className={styles.btnIcon} /> Quitar todos los filtros
+              </button>
+            </div>
+          ) : (
           <div className={styles.grid}>
             {displayData.map((item: any) => (
               <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
@@ -310,13 +328,14 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
               </a>
             ))}
           </div>
+          )}
         </>
       ) : activeTab === "folders" ? (
         <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} />
       ) : activeTab === "analytics" ? (
         <AnalyticsView records={records} enriched={enriched} />
       ) : (
-        <RandomView records={records} latestPrices={latestPrices} />
+        <RandomView records={records} />
       )}
     </div>
   );

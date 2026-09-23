@@ -79,8 +79,8 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 ### Fase 1 — Quick wins
 - [x] Leer todos los params de URL al volver a la portada
 - [x] Partir géneros y estilos por coma (ver nota: el problema real era otro)
-- [ ] Re-muestrear en Randomize y no girar al entrar
-- [ ] Estado vacío en el grid de Colección
+- [x] Re-muestrear en Randomize y no girar al entrar
+- [x] Estado vacío en el grid de Colección
 - [ ] Acciones de carpeta visibles; Escape y clic fuera cierran el modal
 - [ ] Texto secundario al 60 % y 12px mín.; `:focus-visible` global
 - [ ] `aria-label` en hamburguesa, flechas y botones de icono
