@@ -2,6 +2,7 @@
 
 import { useMemo, useState, Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import styles from "./dashboard.module.css";
 
@@ -374,7 +375,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
 
           <div className={styles.grid}>
             {displayData.map((item) => (
-              <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
+              <Link key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
                     <img
@@ -422,7 +423,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
                     })()}
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
           </>

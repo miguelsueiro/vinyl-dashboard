@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconTrash, IconEdit, IconClose, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import styles from "./dashboard.module.css";
-import { separarTokens, tokensUnicos } from "@/lib/collection";
+import { separarTokens, tokensUnicos, variacion, formatearDelta } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
 
 interface SmartFolder {
@@ -306,7 +307,7 @@ export default function SmartFoldersView({
 
           <div className={styles.grid}>
             {activeFolder.items.map((item) => (
-              <a key={item.release_id} href={urlDisco(item.release_id)} className={styles.card}>
+              <Link key={item.release_id} href={urlDisco(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
                     <img
@@ -331,11 +332,11 @@ export default function SmartFoldersView({
                       {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}
                       {item.trend === "down" && <IconArrowDown className={styles.trendIcon} />}
                       {item.trend === "stable" && <IconMinus className={styles.trendIcon} />}
-                      <span>{item.prevPrice > 0 ? formatEuro(item.prevPrice) : "--"}</span>
+                      <span>{item.trend === "stable" ? "igual" : formatearDelta(variacion(item.price, item.prevPrice).absoluta)}</span>
                     </div>
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
             {activeFolder.items.length === 0 && (
               <div className={styles.emptyFolderMessage}>

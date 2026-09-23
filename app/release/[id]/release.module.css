@@ -673,3 +673,52 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.65);
 }
+
+/* ---- ESQUELETO MIENTRAS CARGA LA FICHA ----
+   Sustituye al loader de pantalla completa, que tapaba toda la página en cada
+   navegación. Las medidas imitan las del contenido real para que no salte el
+   layout al llegar los datos. */
+.skel {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+  animation: skelShimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+@keyframes skelShimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+}
+
+.skelBack   { width: 110px; height: 42px; border-radius: 30px; }
+.skelNavBtn { width: 46px;  height: 46px; border-radius: 14px; }
+.skelPos    { width: 76px;  height: 18px; }
+.skelCover  { width: 100%; aspect-ratio: 1; border-radius: 16px; }
+.skelArtist { width: 40%; height: 15px; margin-bottom: 14px; }
+.skelTitle  { width: 85%; height: 40px; margin-bottom: 18px; }
+.skelTags   { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.skelTag    { width: 72px; height: 30px; border-radius: 30px; }
+.skelPrice  { width: 100%; height: 118px; border-radius: 16px; margin-bottom: 20px; }
+.skelLine   { width: 60%; height: 44px; }
+
+/* Texto solo para lectores de pantalla. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

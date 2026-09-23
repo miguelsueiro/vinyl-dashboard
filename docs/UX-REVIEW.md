@@ -89,7 +89,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 
 ### Fase 2 — Mejoras medias
 - [x] Pestañas en la URL (contexto de carpeta en la ficha, pendiente)
-- [ ] `Link` en vez de `<a>`; loader solo en primera carga, esqueletos después
+- [x] `Link` en vez de `<a>`; loader solo en primera carga, esqueletos después
 - [x] Ficha: precio junto a la portada (historial como gráfico, pendiente)
 - [x] Tendencia con delta y leyenda del semáforo
 - [x] Fecha de última sincronización junto al valor total
