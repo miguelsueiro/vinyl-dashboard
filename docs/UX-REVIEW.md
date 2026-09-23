@@ -92,7 +92,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [ ] `Link` en vez de `<a>`; loader solo en primera carga, esqueletos después
 - [x] Ficha: precio junto a la portada (historial como gráfico, pendiente)
 - [x] Tendencia con delta y leyenda del semáforo
-- [ ] Fecha de última sincronización junto al valor total
+- [x] Fecha de última sincronización junto al valor total
 - [ ] KPIs por encima del gráfico
 - [ ] Chips de filtros, etiquetas visibles, control segmentado
 - [x] Contador en vivo en carpetas (toasts en lugar de `alert()`, pendiente)

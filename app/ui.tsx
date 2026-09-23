@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, Suspense, useEffect, useSyncExternalStore } from "react";
+import { useMemo, useState, Suspense, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import styles from "./dashboard.module.css";
@@ -17,6 +17,7 @@ import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import type {
   Disco, PrecioActual, Snapshot, CarpetaInteligente, DiscoConPrecio, Tendencia,
 } from "@/lib/types";
+import type { Frescura } from "@/lib/fechas";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
@@ -31,9 +32,11 @@ interface PropsDashboard {
   records: Disco[];
   snapshots: Snapshot[];
   initialSmartFolders: CarpetaInteligente[];
+  /** Cuándo terminó la última sincronización. Se calcula en el servidor. */
+  ultimaSync: Frescura | null;
 }
 
-function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders }: PropsDashboard) {
+function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders, ultimaSync }: PropsDashboard) {
   const searchParams = useSearchParams();
 
   // El portal necesita saber si ya estamos en el navegador. Antes se hacía con
@@ -299,6 +302,13 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
               subText={confidenceSummary.discos > 0
                 ? `${formatEuro(confidenceSummary.firme.valor)} sobre mercado contrastado`
                 : ""}
+              footer={ultimaSync ? (
+                <span className={`${styles.syncStamp} ${ultimaSync.obsoleto ? styles.syncStale : ""}`}>
+                  <i className={styles.syncDot} />
+                  {ultimaSync.obsoleto ? "Sin actualizar desde " : "Actualizado "}
+                  <time dateTime={ultimaSync.iso}>{ultimaSync.etiqueta}</time>
+                </span>
+              ) : undefined}
             />
             <KPI label="Disco Más Caro" value={formatEuro(maxPrice)} subText={maxPriceItem ? `${maxPriceItem.record?.artist} - ${maxPriceItem.record?.title}` : ""} />
             <KPI label="Total Discos" value={`${records.length}`} />
@@ -437,12 +447,18 @@ export default function ClientDashboard(props: PropsDashboard) {
   );
 }
 
-function KPI({ label, value, subText }: { label: string; value: string; subText?: string }) {
+function KPI({ label, value, subText, footer }: {
+  label: string;
+  value: string;
+  subText?: string;
+  footer?: ReactNode;
+}) {
   return (
     <div className={styles.kpiCard}>
       <div className={styles.kpiLabel}>{label}</div>
       <div className={styles.kpiValue}>{value}</div>
       {subText && <div className={styles.kpiSubText}>{subText}</div>}
+      {footer}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import ClientDashboard from "./ui";
 import type { Disco, PrecioActual, Snapshot, CarpetaInteligente } from "@/lib/types";
+import { calcularFrescura } from "@/lib/fechas";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +48,14 @@ export default async function Home() {
 
   console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Smart Folders: ${smartFolders.length}`);
 
+  // El último snapshot se escribe al terminar la sincronización, así que su
+  // fecha es la señal de que hubo una pasada completa. Se calcula aquí, en el
+  // servidor, para que el "hace X" no cambie entre el HTML y la hidratación.
+  const ultimaSync = calcularFrescura(snapshots[snapshots.length - 1]?.created_at);
+
   return (
     <ClientDashboard
+      ultimaSync={ultimaSync}
       latestPrices={latestPrices}
       records={allRecords}
       snapshots={snapshots}
