@@ -95,7 +95,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [ ] Fecha de última sincronización junto al valor total
 - [ ] KPIs por encima del gráfico
 - [ ] Chips de filtros, etiquetas visibles, control segmentado
-- [ ] Contador en vivo en carpetas; toasts en lugar de `alert()`
+- [x] Contador en vivo en carpetas (toasts en lugar de `alert()`, pendiente)
 - [ ] Una sola definición de rareza
 
 ### Fase 3 — Estructural

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconTrash, IconEdit, IconClose, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import styles from "./dashboard.module.css";
@@ -52,10 +52,10 @@ export default function SmartFoldersView({
   const labelsList = useMemo(() => Array.from(new Set(records.map((r) => r.label).filter((v): v is string => Boolean(v)))).sort(), [records]);
   const countriesList = useMemo(() => Array.from(new Set(records.map((r) => r.country).filter((v): v is string => Boolean(v)))).sort(), [records]);
 
-  // Matching function to filter collection items by folder rules
-  const getFolderItems = (folder: SmartFolder) => {
+  // Recibe las reglas sueltas, no una carpeta guardada: así sirve igual para
+  // las carpetas existentes y para las que se están definiendo en el modal.
+  const itemsQueCumplen = useCallback((rules: ReglasCarpeta) => {
     return enriched.filter((item) => {
-      const { rules } = folder;
       
       // Artista rule
       if (rules.artist && !item.record?.artist?.toLowerCase().includes(rules.artist.toLowerCase())) {
@@ -102,12 +102,12 @@ export default function SmartFoldersView({
       
       return true;
     });
-  };
+  }, [enriched]);
 
   // Pre-calculate stats for all folders to display on the grid
   const foldersWithStats = useMemo(() => {
     return folders.map(f => {
-      const items = getFolderItems(f);
+      const items = itemsQueCumplen(f.rules);
       const totalValue = items.reduce((sum, item) => sum + (item.price || 0), 0);
       return {
         ...f,
@@ -116,7 +116,7 @@ export default function SmartFoldersView({
         items
       };
     });
-  }, [folders, enriched]);
+  }, [folders, itemsQueCumplen]);
 
   const activeFolder = foldersWithStats.find(f => f.id === activeFolderId);
 
@@ -145,6 +145,32 @@ export default function SmartFoldersView({
       focoPrevio.current?.focus?.();
     };
   }, [showModal]);
+
+  // Las reglas tal y como están ahora mismo en el formulario.
+  const reglasBorrador: ReglasCarpeta = useMemo(() => ({
+    ...(artistRule.trim() && { artist: artistRule.trim() }),
+    ...(genreRule && { genre: genreRule }),
+    ...(styleRule && { style: styleRule }),
+    ...(labelRule && { label: labelRule }),
+    ...(yearMinRule.trim() && { yearMin: yearMinRule.trim() }),
+    ...(yearMaxRule.trim() && { yearMax: yearMaxRule.trim() }),
+    ...(priceMinRule.trim() && { priceMin: priceMinRule.trim() }),
+    ...(priceMaxRule.trim() && { priceMax: priceMaxRule.trim() }),
+    ...(countryRule && { country: countryRule }),
+  }), [artistRule, genreRule, styleRule, labelRule, yearMinRule, yearMaxRule, priceMinRule, priceMaxRule, countryRule]);
+
+  // Vista previa mientras se escriben las reglas: antes había que guardar la
+  // carpeta y entrar a mirarla para saber cuántos discos cogía.
+  const vistaPrevia = useMemo(() => {
+    if (!showModal) return null;
+    const hayReglas = Object.keys(reglasBorrador).length > 0;
+    const items = itemsQueCumplen(reglasBorrador);
+    return {
+      hayReglas,
+      discos: items.length,
+      valor: items.reduce((suma, item) => suma + (item.price || 0), 0),
+    };
+  }, [showModal, reglasBorrador, itemsQueCumplen]);
 
   const openCreateModal = () => {
     setEditingFolder(null);
@@ -182,17 +208,7 @@ export default function SmartFoldersView({
     if (!folderName.trim()) return;
     setSaving(true);
 
-    const rules = {
-      ...(artistRule.trim() && { artist: artistRule.trim() }),
-      ...(genreRule && { genre: genreRule }),
-      ...(styleRule && { style: styleRule }),
-      ...(labelRule && { label: labelRule }),
-      ...(yearMinRule.trim() && { yearMin: yearMinRule.trim() }),
-      ...(yearMaxRule.trim() && { yearMax: yearMaxRule.trim() }),
-      ...(priceMinRule.trim() && { priceMin: priceMinRule.trim() }),
-      ...(priceMaxRule.trim() && { priceMax: priceMaxRule.trim() }),
-      ...(countryRule && { country: countryRule }),
-    };
+    const rules = reglasBorrador;
 
     if (editingFolder) {
       const res = await updateSmartFolder(editingFolder.id, folderName.trim(), rules);
@@ -529,6 +545,30 @@ export default function SmartFoldersView({
                 </div>
                 <div className={styles.formGroup} />
               </div>
+
+              {/* Cuántos discos cogen las reglas tal y como están ahora. */}
+              {vistaPrevia && (
+                <div
+                  className={`${styles.previewBar} ${vistaPrevia.hayReglas && vistaPrevia.discos === 0 ? styles.previewEmpty : ""}`}
+                  aria-live="polite"
+                >
+                  {!vistaPrevia.hayReglas ? (
+                    <span className={styles.previewText}>
+                      Sin reglas, la carpeta cogería los <strong>{vistaPrevia.discos}</strong> discos de la colección.
+                    </span>
+                  ) : vistaPrevia.discos === 0 ? (
+                    <span className={styles.previewText}>
+                      Ningún disco cumple estas reglas. Prueba a quitar alguna.
+                    </span>
+                  ) : (
+                    <span className={styles.previewText}>
+                      <strong>{vistaPrevia.discos}</strong> {vistaPrevia.discos === 1 ? "disco" : "discos"}
+                      <span className={styles.previewDot}>·</span>
+                      <strong>{formatEuro(vistaPrevia.valor)}</strong>
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className={styles.modalFooter}>
                 <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>

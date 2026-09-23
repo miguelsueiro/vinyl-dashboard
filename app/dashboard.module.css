@@ -992,9 +992,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 20px;
+  margin-top: 16px;
+  padding-top: 4px;
 }
 
 .cancelBtn {
@@ -1116,4 +1115,53 @@
 .emptyGridBtn:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- VISTA PREVIA AL DEFINIR UNA CARPETA ----
+   Antes las reglas se definían a ciegas: había que guardar la carpeta y entrar
+   a mirarla para saber cuántos discos cogía. */
+.previewBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 14px 18px;
+  /* Opaco: el contenido del formulario pasa por detrás al hacer scroll. */
+  background: #16211a;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(30, 215, 96, 0.25);
+  background: rgba(30, 215, 96, 0.08);
+  border-radius: 14px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.previewBar strong {
+  color: #1ED760;
+  font-weight: 800;
+}
+
+.previewEmpty {
+  border-color: rgba(255, 77, 77, 0.3);
+  background: #211616;
+}
+
+.previewEmpty strong {
+  color: #ff4d4d;
+}
+
+.previewText {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.previewDot {
+  color: rgba(255, 255, 255, 0.35);
 }
