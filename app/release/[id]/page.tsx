@@ -150,22 +150,22 @@ export default async function ReleasePage({
         <Link href={`/${new URLSearchParams(sp as any).toString() ? `?${new URLSearchParams(sp as any).toString()}` : ""}`} className={styles.backBtn}>
           <span>←</span> Volver
         </Link>
-        <div className={styles.quickNav}>
+        <nav className={styles.quickNav} aria-label="Navegar por la colección">
           {prevId ? (
-            <Link href={getNavUrl(prevId)} className={styles.navBtn} title="Anterior">
+            <Link href={getNavUrl(prevId)} className={styles.navBtn} title="Disco anterior" aria-label="Disco anterior" rel="prev">
               <IconChevronLeft className={styles.navIcon} />
             </Link>
           ) : (
-            <div className={`${styles.navBtn} ${styles.disabled}`}><IconChevronLeft className={styles.navIcon} /></div>
+            <div className={`${styles.navBtn} ${styles.disabled}`} aria-hidden="true"><IconChevronLeft className={styles.navIcon} /></div>
           )}
           {nextId ? (
-            <Link href={getNavUrl(nextId)} className={styles.navBtn} title="Siguiente">
+            <Link href={getNavUrl(nextId)} className={styles.navBtn} title="Disco siguiente" aria-label="Disco siguiente" rel="next">
               <IconChevronRight className={styles.navIcon} />
             </Link>
           ) : (
-            <div className={`${styles.navBtn} ${styles.disabled}`}><IconChevronRight className={styles.navIcon} /></div>
+            <div className={`${styles.navBtn} ${styles.disabled}`} aria-hidden="true"><IconChevronRight className={styles.navIcon} /></div>
           )}
-        </div>
+        </nav>
       </div>
       
       <div className={styles.topSection}>

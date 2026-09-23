@@ -144,15 +144,21 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   };
 
   const tabs = (
-    <div className={styles.tabsContainer}>
-      <button className={styles.hamburger} onClick={() => setIsMenuOpen(true)}>
+    <div className={styles.tabsContainer} role="navigation" aria-label="Secciones">
+      <button
+        className={styles.hamburger}
+        onClick={() => setIsMenuOpen(true)}
+        aria-label="Abrir el menú"
+        aria-expanded={isMenuOpen}
+        aria-controls="menu-secciones"
+      >
         <div className={styles.bar} />
         <div className={styles.bar} />
         <div className={styles.bar} />
       </button>
-      <div className={`${styles.tabsWrapper} ${isMenuOpen ? styles.menuOpen : ""}`}>
+      <div id="menu-secciones" className={`${styles.tabsWrapper} ${isMenuOpen ? styles.menuOpen : ""}`}>
         {isMenuOpen && (
-          <button className={styles.closeMenuBtn} onClick={() => setIsMenuOpen(false)}>
+          <button className={styles.closeMenuBtn} onClick={() => setIsMenuOpen(false)} aria-label="Cerrar el menú">
             <IconClose className={styles.closeIcon} />
           </button>
         )}
@@ -264,13 +270,18 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
           </div>
 
           <div className={styles.mobileAccordionOnly}>
-            <button className={styles.accordionToggle}  onClick={() => setShowFiltersMobile(!showFiltersMobile)}>
+            <button
+              className={styles.accordionToggle}
+              onClick={() => setShowFiltersMobile(!showFiltersMobile)}
+              aria-expanded={showFiltersMobile}
+              aria-controls="filtros-movil"
+            >
               <span className={styles.toggleLabel}>
                 <IconFilter className={styles.btnIcon} /> {showFiltersMobile ? "Ocultar Filtros" : "Filtros y Búsqueda"}
               </span>
               {showFiltersMobile ? <IconChevronUp className={styles.toggleIcon} /> : <IconChevronDown className={styles.toggleIcon} />}
             </button>
-            {showFiltersMobile && FiltersContent}
+            <div id="filtros-movil">{showFiltersMobile && FiltersContent}</div>
           </div>
 
           <h2 className={styles.sectionTitle}>
