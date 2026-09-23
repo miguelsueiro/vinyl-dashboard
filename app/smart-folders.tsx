@@ -16,11 +16,14 @@ interface SmartFolder {
 export default function SmartFoldersView({
   records,
   enriched,
-  initialSmartFolders
+  initialSmartFolders,
+  urlDisco
 }: {
   records: Disco[];
   enriched: DiscoConPrecio[];
   initialSmartFolders: SmartFolder[];
+  /** La construye la portada para que al volver se conserve la sección. */
+  urlDisco: (releaseId: string | number) => string;
 }) {
   const [folders, setFolders] = useState<SmartFolder[]>(initialSmartFolders || []);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -287,7 +290,7 @@ export default function SmartFoldersView({
 
           <div className={styles.grid}>
             {activeFolder.items.map((item) => (
-              <a key={item.release_id} href={`/release/${item.release_id}`} className={styles.card}>
+              <a key={item.release_id} href={urlDisco(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
                     <img

@@ -18,8 +18,12 @@ export type OrdenColeccion = "priceDesc" | "priceAsc" | "artistAsc" | "yearDesc"
 
 export type VistaColeccion = "all" | "top10" | "rarezas";
 
+/** Las cuatro secciones del dashboard. */
+export type PestanaDashboard = "collection" | "folders" | "analytics" | "random";
+
 export const ORDEN_POR_DEFECTO: OrdenColeccion = "priceDesc";
 export const VISTA_POR_DEFECTO: VistaColeccion = "all";
+export const PESTANA_POR_DEFECTO: PestanaDashboard = "collection";
 
 /** Lo mínimo que necesita un disco para filtrarse y ordenarse. */
 export interface ItemColeccion {
@@ -263,6 +267,12 @@ export function ordenDesdeParams(sp: FuenteParams): OrdenColeccion {
   return validos.includes(v as OrdenColeccion) ? (v as OrdenColeccion) : ORDEN_POR_DEFECTO;
 }
 
+export function pestanaDesdeParams(sp: FuenteParams): PestanaDashboard {
+  const v = leerParam(sp, "tab");
+  const validos: PestanaDashboard[] = ["collection", "folders", "analytics", "random"];
+  return validos.includes(v as PestanaDashboard) ? (v as PestanaDashboard) : PESTANA_POR_DEFECTO;
+}
+
 export function vistaDesdeParams(sp: FuenteParams): VistaColeccion {
   const v = leerParam(sp, "view");
   const validos: VistaColeccion[] = ["all", "top10", "rarezas"];
@@ -279,7 +289,8 @@ export function vistaDesdeParams(sp: FuenteParams): VistaColeccion {
 export function construirQuery(
   filtros: FiltrosColeccion,
   orden: OrdenColeccion,
-  vista: VistaColeccion
+  vista: VistaColeccion,
+  pestana: PestanaDashboard = PESTANA_POR_DEFECTO
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (filtros.search.trim()) params.set("search", filtros.search);
@@ -291,6 +302,7 @@ export function construirQuery(
   if (filtros.condition) params.set("condition", filtros.condition);
   if (orden !== ORDEN_POR_DEFECTO) params.set("sort", orden);
   if (vista !== VISTA_POR_DEFECTO) params.set("view", vista);
+  if (pestana !== PESTANA_POR_DEFECTO) params.set("tab", pestana);
   return params;
 }
 

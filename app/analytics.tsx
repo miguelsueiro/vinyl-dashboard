@@ -16,7 +16,12 @@ import type { Disco, DiscoConPrecio, DiscoConRareza } from "@/lib/types";
 // `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
 // esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
 // con records.find() dentro de un map: 1.331 × 1.331 comparaciones, tres veces.
-export default function AnalyticsView({ records, enriched }: { records: Disco[]; enriched: DiscoConPrecio[] }) {
+export default function AnalyticsView({ records, enriched, urlDisco }: {
+  records: Disco[];
+  enriched: DiscoConPrecio[];
+  /** La construye la portada para que al volver se conserve la sección. */
+  urlDisco: (releaseId: string | number) => string;
+}) {
 
   const formatEuro = (val: number) => 
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(val);
@@ -151,7 +156,7 @@ export default function AnalyticsView({ records, enriched }: { records: Disco[];
             {topValue.map((item, i) => {
               const r = item.record;
               return (
-                <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem}>
+                <Link href={urlDisco(item.release_id)} key={item.release_id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}>{i+1}</span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
@@ -167,7 +172,7 @@ export default function AnalyticsView({ records, enriched }: { records: Disco[];
             {topRare.map((item) => {
               const r = item.record;
               return (
-                <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem}>
+                <Link href={urlDisco(item.release_id)} key={item.release_id} className={styles.rankingItem}>
                   <span className={styles.rankIndex}><IconStar className={styles.rankStar} /></span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
@@ -183,7 +188,7 @@ export default function AnalyticsView({ records, enriched }: { records: Disco[];
         <h3 className={styles.analyticTitle}><IconArrowUp className={styles.titleIcon} style={{ color: '#1ED760' }} /> Todas las Variaciones Recientes</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {latestChanges.length > 0 ? latestChanges.map((item) => (
-            <Link href={`/release/${item.release_id}`} key={item.release_id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px' }}>
+            <Link href={urlDisco(item.release_id)} key={item.release_id} className={styles.rankingItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px' }}>
               <div className={styles.rankIndex} style={{ width: '40px' }}>
                  {item.trend === "up" ? <IconArrowUp style={{ color: '#1ED760', width: '16px' }} /> : <IconArrowDown style={{ color: '#ff4d4d', width: '16px' }} />}
               </div>

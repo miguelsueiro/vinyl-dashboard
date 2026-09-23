@@ -19,8 +19,10 @@ import type {
 } from "@/lib/types";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
-  filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, construirQuery,
+  filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
+  construirQuery, FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
+  type PestanaDashboard,
 } from "@/lib/collection";
 
 interface PropsDashboard {
@@ -64,7 +66,11 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   // manda el estado y la URL es su reflejo (ver el efecto de sincronización).
   const [filtrosIniciales] = useState(() => filtrosDesdeParams(searchParams));
 
-  const [activeTab, setActiveTab] = useState<"collection" | "analytics" | "random" | "folders">("collection");
+  // La pestaña se lee de la URL en cada render en lugar de guardarse en estado.
+  // Así recargar o compartir el enlace abre la sección correcta, y el botón
+  // atrás del navegador se mueve entre secciones sin código extra: Next
+  // actualiza useSearchParams cuando cambia el historial.
+  const activeTab: PestanaDashboard = pestanaDesdeParams(searchParams);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [search, setSearch] = useState(filtrosIniciales.search);
   const [genre, setGenre] = useState(filtrosIniciales.genre);
@@ -120,6 +126,15 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
     format: formatFilter, condition: conditionFilter,
   }), [search, genre, styleFilter, year, labelFilter, formatFilter, conditionFilter]);
 
+  const cambiarPestana = (destino: PestanaDashboard) => {
+    setIsMenuOpen(false);
+    if (destino === activeTab) return;
+    const qs = construirQuery(filters, sortBy, viewMode, destino).toString();
+    // pushState y no replaceState: cambiar de sección es navegación
+    // deliberada, así que el botón atrás del navegador debe deshacerla.
+    window.history.pushState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  };
+
   // La URL refleja el estado, para que compartirla —o volver desde una ficha—
   // devuelva exactamente lo que había en pantalla.
   //
@@ -129,12 +144,12 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   // con useSearchParams sin recargar la página.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const qs = construirQuery(filters, sortBy, viewMode).toString();
+    const qs = construirQuery(filters, sortBy, viewMode, activeTab).toString();
     const destino = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
     if (destino !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(null, "", destino);
     }
-  }, [filters, sortBy, viewMode]);
+  }, [filters, sortBy, viewMode, activeTab]);
 
   // Antes se recalculaba en cada render —cada tecla de la búsqueda recorría los
   // 1.331 discos comparando siete campos de texto—, ahora solo cuando cambia algo.
@@ -178,10 +193,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
             <IconClose className={styles.closeIcon} />
           </button>
         )}
-        <button className={`${styles.tabBtn} ${activeTab === "collection" ? styles.active : ""}`} onClick={() => { setActiveTab("collection"); setIsMenuOpen(false); }}>Colección</button>
-        <button className={`${styles.tabBtn} ${activeTab === "folders" ? styles.active : ""}`} onClick={() => { setActiveTab("folders"); setIsMenuOpen(false); }}>Carpetas</button>
-        <button className={`${styles.tabBtn} ${activeTab === "analytics" ? styles.active : ""}`} onClick={() => { setActiveTab("analytics"); setIsMenuOpen(false); }}>Insights</button>
-        <button className={`${styles.tabBtn} ${activeTab === "random" ? styles.active : ""}`} onClick={() => { setActiveTab("random"); setIsMenuOpen(false); }}>Randomize</button>
+        <button className={`${styles.tabBtn} ${activeTab === "collection" ? styles.active : ""}`} onClick={() => cambiarPestana("collection")}>Colección</button>
+        <button className={`${styles.tabBtn} ${activeTab === "folders" ? styles.active : ""}`} onClick={() => cambiarPestana("folders")}>Carpetas</button>
+        <button className={`${styles.tabBtn} ${activeTab === "analytics" ? styles.active : ""}`} onClick={() => cambiarPestana("analytics")}>Insights</button>
+        <button className={`${styles.tabBtn} ${activeTab === "random" ? styles.active : ""}`} onClick={() => cambiarPestana("random")}>Randomize</button>
       </div>
     </div>
   );
@@ -255,10 +270,17 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
     </div>
   );
 
+  // Para Carpetas e Insights, que no usan los filtros de Colección: basta con
+  // arrastrar la sección para que "Volver" devuelva a donde estabas.
+  const urlDiscoDeSeccion = (releaseId: string | number) => {
+    const qs = construirQuery(FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO, activeTab).toString();
+    return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
+  };
+
   // Mismo constructor que usa la sincronización de la URL, para que lo que se
   // envía a la ficha y lo que se recupera al volver no puedan divergir.
   const getReleaseUrl = (releaseId: string | number) => {
-    const qs = construirQuery(filters, sortBy, viewMode).toString();
+    const qs = construirQuery(filters, sortBy, viewMode, activeTab).toString();
     return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
   };
 
@@ -366,9 +388,9 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
           )}
         </>
       ) : activeTab === "folders" ? (
-        <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} />
+        <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} urlDisco={urlDiscoDeSeccion} />
       ) : activeTab === "analytics" ? (
-        <AnalyticsView records={records} enriched={enriched} />
+        <AnalyticsView records={records} enriched={enriched} urlDisco={urlDiscoDeSeccion} />
       ) : (
         <RandomView records={records} />
       )}

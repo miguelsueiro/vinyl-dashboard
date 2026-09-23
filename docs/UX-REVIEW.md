@@ -88,7 +88,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] "12 de 340" en la ficha y atajos ← →
 
 ### Fase 2 — Mejoras medias
-- [ ] Pestañas en la URL y contexto de carpeta en la ficha
+- [x] Pestañas en la URL (contexto de carpeta en la ficha, pendiente)
 - [ ] `Link` en vez de `<a>`; loader solo en primera carga, esqueletos después
 - [x] Ficha: precio junto a la portada (historial como gráfico, pendiente)
 - [ ] Tendencia con delta y leyenda del semáforo
