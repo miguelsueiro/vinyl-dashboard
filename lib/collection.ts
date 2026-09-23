@@ -122,13 +122,10 @@ function tieneToken(valor: string | null | undefined, buscado: string): boolean 
 }
 
 /** Todos los valores distintos de una columna multivalor, ordenados. */
-export function tokensUnicos(
-  items: Array<{ [k: string]: unknown }>,
-  campo: string
-): string[] {
+export function tokensUnicos<T>(items: T[], campo: keyof T): string[] {
   const set = new Set<string>();
   for (const item of items) {
-    for (const t of separarTokens(item[campo] as string)) set.add(t);
+    for (const t of separarTokens(item[campo] as string | null | undefined)) set.add(t);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
 }

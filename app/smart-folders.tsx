@@ -2,24 +2,15 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
-import { IconFolder, IconTrash, IconEdit, IconClose, IconPlus, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
+import { IconTrash, IconEdit, IconClose, IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import styles from "./dashboard.module.css";
 import { separarTokens, tokensUnicos } from "@/lib/collection";
+import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
 
 interface SmartFolder {
   id: string;
   name: string;
-  rules: {
-    artist?: string;
-    genre?: string;
-    style?: string;
-    label?: string;
-    yearMin?: string;
-    yearMax?: string;
-    priceMin?: string;
-    priceMax?: string;
-    country?: string;
-  };
+  rules: ReglasCarpeta;
 }
 
 export default function SmartFoldersView({
@@ -27,9 +18,9 @@ export default function SmartFoldersView({
   enriched,
   initialSmartFolders
 }: {
-  records: any[];
-  enriched: any[];
-  initialSmartFolders: any[];
+  records: Disco[];
+  enriched: DiscoConPrecio[];
+  initialSmartFolders: SmartFolder[];
 }) {
   const [folders, setFolders] = useState<SmartFolder[]>(initialSmartFolders || []);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -51,16 +42,16 @@ export default function SmartFoldersView({
   const [saving, setSaving] = useState(false);
 
   // Extract select option values dynamically from records
-  const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
+  const artists = useMemo(() => Array.from(new Set(records.map((r) => r.artist).filter((v): v is string => Boolean(v)))).sort(), [records]);
   // Multivalor, igual que en la portada: ver lib/collection.ts
   const genres = useMemo(() => tokensUnicos(records, "genre"), [records]);
   const stylesList = useMemo(() => tokensUnicos(records, "style"), [records]);
-  const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
-  const countriesList = useMemo(() => Array.from(new Set(records.map((r: any) => r.country).filter(Boolean))).sort() as string[], [records]);
+  const labelsList = useMemo(() => Array.from(new Set(records.map((r) => r.label).filter((v): v is string => Boolean(v)))).sort(), [records]);
+  const countriesList = useMemo(() => Array.from(new Set(records.map((r) => r.country).filter((v): v is string => Boolean(v)))).sort(), [records]);
 
   // Matching function to filter collection items by folder rules
   const getFolderItems = (folder: SmartFolder) => {
-    return enriched.filter((item: any) => {
+    return enriched.filter((item) => {
       const { rules } = folder;
       
       // Artista rule
@@ -89,7 +80,7 @@ export default function SmartFoldersView({
       
       // Año min/max rule
       if (item.record?.year) {
-        const itemYear = parseInt(item.record.year, 10);
+        const itemYear = parseInt(String(item.record.year), 10);
         if (rules.yearMin && itemYear < parseInt(rules.yearMin, 10)) return false;
         if (rules.yearMax && itemYear > parseInt(rules.yearMax, 10)) return false;
       } else if (rules.yearMin || rules.yearMax) {
@@ -295,7 +286,7 @@ export default function SmartFoldersView({
           </div>
 
           <div className={styles.grid}>
-            {activeFolder.items.map((item: any) => (
+            {activeFolder.items.map((item) => (
               <a key={item.release_id} href={`/release/${item.release_id}`} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (

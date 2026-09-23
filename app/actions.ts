@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import type { ReglasCarpeta } from "@/lib/types";
 
 // Estas acciones corren SOLO en el servidor ("use server"), así que usamos la
 // service role key. La anon key viaja en el bundle del navegador y, con RLS
@@ -27,7 +28,7 @@ export async function saveStreamingUrl(formData: FormData) {
   const supabase = getSupabase();
   if (!supabase) return { success: false, error: MISSING_CONFIG };
 
-  const { data, error, count } = await supabase
+  const { data, error } = await supabase
     .from("records")
     .update({ streaming_url: url })
     .eq("discogs_release_id", parseInt(releaseId, 10))
@@ -52,7 +53,7 @@ export async function saveStreamingUrl(formData: FormData) {
   return { success: true };
 }
 
-export async function createSmartFolder(name: string, rules: any) {
+export async function createSmartFolder(name: string, rules: ReglasCarpeta) {
   if (!name) return { success: false, error: "El nombre es obligatorio" };
 
   const supabase = getSupabase();
@@ -72,7 +73,7 @@ export async function createSmartFolder(name: string, rules: any) {
   return { success: true, folder: data?.[0] };
 }
 
-export async function updateSmartFolder(id: string, name: string, rules: any) {
+export async function updateSmartFolder(id: string, name: string, rules: ReglasCarpeta) {
   if (!id || !name) return { success: false, error: "ID y nombre son obligatorios" };
 
   const supabase = getSupabase();

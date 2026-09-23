@@ -104,7 +104,11 @@ const QUOTES = [
 ];
 
 export default function LoadingVinyl() {
-  // Pick random quote during server render
+  // La cita cambia en cada carga a propósito. Es un Server Component, así que
+  // esto se ejecuta una vez por petición y no hay re-render que lo haga
+  // parpadear. Calcularlo en un useEffect, como estaba antes, dejaba la cita en
+  // blanco mientras se transmitía la página (commit d79df94 -> 53e11a5).
+  // eslint-disable-next-line react-hooks/purity
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
   return (
@@ -119,7 +123,7 @@ export default function LoadingVinyl() {
         </svg>
       </div>
       <div className={styles.quoteBlock}>
-        <p className={styles.quoteText}>"{quote.text}"</p>
+        <p className={styles.quoteText}>&ldquo;{quote.text}&rdquo;</p>
         <p className={styles.quoteAuthor}>— {quote.author}</p>
       </div>
     </div>

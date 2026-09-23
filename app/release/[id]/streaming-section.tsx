@@ -1,20 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./release.module.css";
 import { saveStreamingUrl } from "../../actions";
-import { IconPlay, IconEdit, IconVinyl } from "@/components/icons";
+import { IconPlay, IconEdit } from "@/components/icons";
 
 export default function StreamingSection({ id, initialUrl }: { id: string, initialUrl: string | null }) {
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(!initialUrl);
   const [isPending, setIsPending] = useState(false);
 
-  // Sincronizar el estado de edición si la prop cambia desde el servidor
-  useEffect(() => {
-    setIsEditing(!initialUrl);
-  }, [initialUrl]);
+  // Se deriva en lugar de copiar la prop a un estado y sincronizarla con un
+  // efecto: sin enlace guardado el formulario sale abierto, y si hay enlace
+  // solo se abre cuando el usuario pulsa editar. Al guardar, el servidor manda
+  // el enlace nuevo y basta con bajar la bandera.
+  const [edicionPedida, setEdicionPedida] = useState(false);
+  const isEditing = edicionPedida || !initialUrl;
+  const setIsEditing = setEdicionPedida;
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true);

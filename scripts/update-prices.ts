@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import type {
+  ItemColeccionDiscogs, NotaColeccion, ReleaseDiscogs, SugerenciasPrecio,
+} from "../lib/types";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -11,6 +14,13 @@ if (!supabaseUrl || !supabaseKey || !discogsToken) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+/** Las columnas de `records` que lee la fase de precios. */
+interface FilaRecord {
+  discogs_release_id: number;
+  condition_vinyl: string | null;
+  country?: string | null;
+}
 
 // Discogs manda géneros y estilos como lista. Antes se guardaba solo el primero
 // (info.genres?.[0]) y se tiraba el resto: 890 discos de 1.330 tienen más de un
@@ -29,7 +39,7 @@ async function runUpdate() {
   
   // --- FASE 1: SINCRONIZACIÓN DE COLECCIÓN ---
   console.log("📥 Syncing collection from Discogs...");
-  let discogsReleases: any[] = [];
+  let discogsReleases: ItemColeccionDiscogs[] = [];
   let page = 1;
   let totalPages = 1;
 
@@ -39,7 +49,7 @@ async function runUpdate() {
         headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceSync/1.0" }
       });
       if (!res.ok) throw new Error(`Discogs Sync Error: ${res.status}`);
-      const data: any = await res.json();
+      const data = await res.json() as { releases: ItemColeccionDiscogs[]; pagination: { pages: number } };
       discogsReleases = discogsReleases.concat(data.releases);
       totalPages = data.pagination.pages;
       page++;
@@ -52,15 +62,21 @@ async function runUpdate() {
     for (const release of discogsReleases) {
       const releaseId = release.id;
       const info = release.basic_information;
+      if (!info) {
+        // Sin basic_information no hay nada que guardar. Antes esto reventaba
+        // la sincronización entera al llegar al primer campo.
+        console.warn(`  ⚠️ ${releaseId} viene sin basic_information; se salta.`);
+        continue;
+      }
       const notes = release.notes || [];
       const { data: existing } = await supabase.from("records").select("id").eq("discogs_release_id", releaseId).single();
 
-      const guessCondition = (notes: any[]) => {
+      const guessCondition = (notes: NotaColeccion[]) => {
         const conditionKeywords = ["VG", "NM", "Mint", "Near Mint", "Very Good", "G+", "Fair", "Poor"];
-        let media = notes.find((n: any) => n.field_id === 1)?.value;
-        let sleeve = notes.find((n: any) => n.field_id === 2)?.value;
+        let media = notes.find((n) => n.field_id === 1)?.value;
+        const sleeve = notes.find((n) => n.field_id === 2)?.value;
         if (!media) {
-          const found = notes.find((n: any) => conditionKeywords.some(k => n.value?.includes(k)));
+          const found = notes.find((n) => conditionKeywords.some(k => n.value?.includes(k)));
           media = found?.value;
         }
         return { media: media || "Desconocido", sleeve: sleeve || "Desconocido" };
@@ -102,13 +118,13 @@ async function runUpdate() {
     // borrados). Solo se avisa: borrarlos automáticamente sería arriesgado, un
     // fallo a medias de la API dejaría la colección incompleta y se llevaría por
     // delante los enlaces de streaming guardados a mano. Se limpian a mano.
-    const idsEnDiscogs = new Set(discogsReleases.map((r: any) => Number(r.id)));
+    const idsEnDiscogs = new Set(discogsReleases.map((r) => Number(r.id)));
     const { data: idsEnBase } = await supabase.from("records").select("discogs_release_id, artist, title");
-    const huerfanos = (idsEnBase || []).filter((r: any) => !idsEnDiscogs.has(Number(r.discogs_release_id)));
+    const huerfanos = (idsEnBase ?? []).filter((r) => !idsEnDiscogs.has(Number(r.discogs_release_id)));
 
     if (huerfanos.length > 0) {
       console.warn(`\n⚠️ ${huerfanos.length} disco(s) en la base de datos que ya no están en Discogs:`);
-      huerfanos.forEach((r: any) => console.warn(`   → ${r.discogs_release_id}  ${r.artist} – ${r.title}`));
+      huerfanos.forEach((r) => console.warn(`   → ${r.discogs_release_id}  ${r.artist} – ${r.title}`));
       console.warn("   Siguen contando en el valor total. Bórralos a mano si ya no los tienes.\n");
     }
   } catch (err) {
@@ -117,14 +133,14 @@ async function runUpdate() {
 
   // --- FASE 2: ACTUALIZACIÓN DE PRECIOS ---
   console.log("📈 Starting price updates...");
-  let statsSummary = { total: 0, success: 0, fallback: 0, noData: 0, countries: 0 };
+  const statsSummary = { total: 0, success: 0, fallback: 0, noData: 0, countries: 0 };
   
   // La columna country puede no existir todavía (ver scripts/add_country_column.sql).
   // Si no está, seguimos sin ella en vez de dejar la colección entera sin actualizar.
   let hasCountryColumn = true;
 
   const fetchRecords = async (columns: string) => {
-    const rows: any[] = [];
+    const rows: FilaRecord[] = [];
     let offset = 0;
     for (;;) {
       const { data, error } = await supabase
@@ -133,24 +149,24 @@ async function runUpdate() {
         .range(offset, offset + 999);
       if (error) throw error;
       if (!data) break;
-      rows.push(...data);
+      rows.push(...(data as unknown as FilaRecord[]));
       if (data.length < 1000) break;
       offset += 1000;
     }
     return rows;
   };
 
-  let allRecords: any[] = [];
+  let allRecords: FilaRecord[] = [];
   try {
     allRecords = await fetchRecords("discogs_release_id, condition_vinyl, country");
-  } catch (err: any) {
-    console.warn("⚠️ No se pudo leer la columna 'country' (¿falta ejecutar add_country_column.sql?):", err?.message);
+  } catch (err) {
+    console.warn("⚠️ No se pudo leer la columna 'country' (¿falta ejecutar add_country_column.sql?):", err instanceof Error ? err.message : err);
     console.warn("   Continuando sin guardar el país.");
     hasCountryColumn = false;
     try {
       allRecords = await fetchRecords("discogs_release_id, condition_vinyl");
-    } catch (err2: any) {
-      console.error("❌ No se pudieron leer los discos:", err2?.message);
+    } catch (err2) {
+      console.error("❌ No se pudieron leer los discos:", err2 instanceof Error ? err2.message : err2);
     }
   }
 
@@ -229,7 +245,7 @@ async function runUpdate() {
           continue;
         }
 
-        const releaseData: any = await response.json();
+        const releaseData = await response.json() as ReleaseDiscogs & { marketplace_stats?: { lowest_price?: { value?: number }; num_for_sale?: number; median_price?: { value?: number } }; community?: { stats?: { median?: { value?: number } } }; median_price?: number };
 
         // El país solo viene en la ficha completa, no en la colección, así que
         // se guarda aquí aprovechando que ya la hemos pedido. Solo escribimos
@@ -244,9 +260,9 @@ async function runUpdate() {
           else statsSummary.countries++;
         }
 
-        let lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
+        const lowestPrice = releaseData.marketplace_stats?.lowest_price?.value || releaseData.lowest_price || 0;
         let medianPrice = 0;
-        let numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
+        const numForSale = releaseData.marketplace_stats?.num_for_sale || releaseData.num_for_sale || 0;
         let isUsingCondition = false;
         
         // Intentar obtener sugerencias para precisión por estado
@@ -255,7 +271,7 @@ async function runUpdate() {
             headers: { "Authorization": `Discogs token=${discogsToken}`, "User-Agent": "VinylIntelligenceApp/1.2" }
           });
           if (suggestRes.ok) {
-            const suggestData: any = await suggestRes.json();
+            const suggestData = await suggestRes.json() as SugerenciasPrecio;
             
             // Prioridad 1: Usar la condición real del usuario
             const targetKey = conditionMap[userCondition || ""] || "Very Good Plus (VG+)";
@@ -268,7 +284,7 @@ async function runUpdate() {
               medianPrice = suggestData["Very Good Plus (VG+)"]?.value || suggestData["Near Mint (NM or M-)"]?.value || 0;
             }
           }
-        } catch (e) {}
+        } catch { /* sin sugerencias: se usa el fallback de abajo */ }
 
         // Fallback final de comunidad si todo lo anterior falla
         if (medianPrice === 0) {
@@ -340,7 +356,7 @@ async function runUpdate() {
   // filas cada noche. latest_prices ya contiene exactamente ese dato — son
   // 1.330 filas y dos décimas de segundo, y da el mismo total al céntimo.
   console.log("📊 Calculating final collection value...");
-  let snapshotRows: any[] = [];
+  let snapshotRows: Array<{ median_price: number | null; lowest_price: number | null }> = [];
   let offsetPrices = 0;
   for (;;) {
     const { data, error } = await supabase

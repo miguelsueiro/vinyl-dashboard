@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { ItemColeccionDiscogs } from "../lib/types";
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -10,7 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function fixFormats() {
   console.log("🚀 Starting format backfill from Discogs...");
 
-  let allReleases: any[] = [];
+  let allReleases: ItemColeccionDiscogs[] = [];
   let page = 1;
   let totalPages = 1;
 
@@ -19,7 +20,7 @@ async function fixFormats() {
       `https://api.discogs.com/users/${discogsUsername}/collection/folders/0/releases?page=${page}&per_page=100`,
       { headers: { Authorization: `Discogs token=${discogsToken}`, "User-Agent": "VinylFormatFix/1.0" } }
     );
-    const data: any = await res.json();
+    const data = await res.json() as { releases: ItemColeccionDiscogs[]; pagination: { pages: number } };
     allReleases = allReleases.concat(data.releases);
     totalPages = data.pagination.pages;
     page++;
@@ -31,6 +32,7 @@ async function fixFormats() {
 
   for (const release of allReleases) {
     const info = release.basic_information;
+    if (!info) continue;
     const fullFormat = [
       info.formats?.[0]?.name,
       ...(info.formats?.[0]?.descriptions || [])

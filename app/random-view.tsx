@@ -4,18 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./dashboard.module.css";
 import { IconVinyl } from "@/components/icons";
 import Link from "next/link";
-
-interface DiscoAleatorio {
-  id: string | number;
-  discogs_release_id: string | number;
-  artist?: string | null;
-  title?: string | null;
-  cover_image?: string | null;
-}
+import type { Disco } from "@/lib/types";
 
 interface Tirada {
   limite: number;
-  muestra: DiscoAleatorio[];
+  muestra: Disco[];
   /** Posición del ganador dentro de la muestra. */
   ganador: number;
   /** Posición que se está pintando ahora (va cambiando durante el giro). */
@@ -40,7 +33,7 @@ function mezclar<T>(origen: T[]): T[] {
  * dentro de ella: los otros 1.290 discos no podían salir por mucho que le dieras
  * a «probar de nuevo».
  */
-function elegirTirada(todos: DiscoAleatorio[], limite: number): Tirada {
+function elegirTirada(todos: Disco[], limite: number): Tirada {
   if (!todos || todos.length === 0) {
     return { limite, muestra: [], ganador: 0, seleccion: 0 };
   }
@@ -56,7 +49,7 @@ function limitePorPantalla(): number {
   return typeof window !== "undefined" && window.innerWidth < 800 ? 15 : 40;
 }
 
-export default function RandomView({ records }: { records: DiscoAleatorio[] }) {
+export default function RandomView({ records }: { records: Disco[] }) {
   // Inicializador perezoso en lugar de un efecto: esta vista solo se monta en
   // cliente (la pestaña por defecto es Colección), así que no hay riesgo de que
   // el servidor y el navegador pinten discos distintos.

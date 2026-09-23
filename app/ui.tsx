@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, Suspense, useEffect } from "react";
+import { useMemo, useState, Suspense, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import styles from "./dashboard.module.css";
 
 import InvestmentChart from "./investment-chart";
-import GenreChart from "./genre-chart";
 import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
 import SmartFoldersView from "./smart-folders";
@@ -15,20 +14,37 @@ import {
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
+import type {
+  Disco, PrecioActual, Snapshot, CarpetaInteligente, DiscoConPrecio, Tendencia,
+} from "@/lib/types";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, construirQuery,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
 } from "@/lib/collection";
 
-function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders }: any) {
+interface PropsDashboard {
+  latestPrices: PrecioActual[];
+  records: Disco[];
+  snapshots: Snapshot[];
+  initialSmartFolders: CarpetaInteligente[];
+}
+
+function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders }: PropsDashboard) {
   const searchParams = useSearchParams();
 
-  const [mounted, setMounted] = useState(false);
-  
+  // El portal necesita saber si ya estamos en el navegador. Antes se hacía con
+  // un setMounted(true) dentro de un efecto, que provoca un render en cascada.
+  // useSyncExternalStore es el idioma para esto: devuelve false en el servidor
+  // y true en cliente, sin estado intermedio.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
   // 🔄 RESTAURACIÓN DE SCROLL
   useEffect(() => {
-    setMounted(true);
     const savedScroll = sessionStorage.getItem("dashboardScroll");
     if (savedScroll) {
       setTimeout(() => {
@@ -61,19 +77,19 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   const [sortBy, setSortBy] = useState<OrdenColeccion>(() => ordenDesdeParams(searchParams));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const recordMap = useMemo(() => new Map<number, any>(records.map((r: any) => [Number(r.discogs_release_id), r])), [records]);
+  const recordMap = useMemo(() => new Map<number, Disco>(records.map((r) => [Number(r.discogs_release_id), r])), [records]);
   
   // 📈 CÁLCULO DE TENDENCIAS
   // El precio anterior lo guarda la sincronización nocturna en la propia fila,
   // así que aquí no hay que cargar ni recorrer histórico.
-  const enriched = useMemo(() => latestPrices.map((p: any) => {
+  const enriched: DiscoConPrecio[] = useMemo(() => latestPrices.map((p) => {
     const record = recordMap.get(Number(p.release_id));
     const price = redondear(p.median_price ?? p.lowest_price);
 
     // Sin previous_price (fila nueva, o columna recién creada) no hay con qué
     // comparar: el anterior es el actual y la flecha queda "estable".
     const prevPrice = p.previous_price != null ? redondear(p.previous_price) : price;
-    let trend: "up" | "down" | "stable" = "stable";
+    let trend: Tendencia = "stable";
     if (price > prevPrice) trend = "up";
     else if (price < prevPrice) trend = "down";
 
@@ -83,21 +99,21 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   }), [latestPrices, recordMap]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
-  const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum: number, item: any) => sum + item.price, 0);
+  const totalValue = lastSnapshot?.total_value ?? enriched.reduce((sum, item) => sum + item.price, 0);
   const confidenceSummary = useMemo(() => resumirFiabilidad(enriched), [enriched]);
-  const sortedByPriceItems = [...enriched].sort((a: any, b: any) => b.price - a.price);
+  const sortedByPriceItems = [...enriched].sort((a, b) => b.price - a.price);
   const maxPriceItem = sortedByPriceItems.length > 0 ? sortedByPriceItems[0] : null;
   const maxPrice = maxPriceItem ? maxPriceItem.price : 0;
   
   const sortedData = useMemo(() => ordenarColeccion(enriched, sortBy), [enriched, sortBy]);
   
-  const artists = useMemo(() => Array.from(new Set(records.map((r: any) => r.artist).filter(Boolean))).sort() as string[], [records]);
+  const artists = useMemo(() => Array.from(new Set(records.map((r) => r.artist).filter((a): a is string => Boolean(a)))).sort(), [records]);
   // Multivalor: un disco puede ser "Hardcore, Punk, Noise" y debe aparecer bajo
   // los tres, no solo bajo el primero.
   const genres = useMemo(() => tokensUnicos(records, "genre"), [records]);
   const stylesList = useMemo(() => tokensUnicos(records, "style"), [records]);
-  const years = useMemo(() => Array.from(new Set(records.map((r: any) => String(r.year)).filter((y: string) => y && y !== "null" && y !== "0"))).sort(), [records]);
-  const labelsList = useMemo(() => Array.from(new Set(records.map((r: any) => r.label).filter(Boolean))).sort(), [records]);
+  const years = useMemo(() => Array.from(new Set(records.map((r) => String(r.year)).filter((y) => y && y !== "null" && y !== "0"))).sort(), [records]);
+  const labelsList = useMemo(() => Array.from(new Set(records.map((r) => r.label).filter((l): l is string => Boolean(l)))).sort(), [records]);
 
   const filters: FiltrosColeccion = useMemo(() => ({
     search, genre, style: styleFilter, year, label: labelFilter,
@@ -123,13 +139,13 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   // Antes se recalculaba en cada render —cada tecla de la búsqueda recorría los
   // 1.331 discos comparando siete campos de texto—, ahora solo cuando cambia algo.
   const filtered = useMemo(
-    () => sortedData.filter((item: any) => cumpleFiltros(item, filters)),
+    () => sortedData.filter((item) => cumpleFiltros(item, filters)),
     [sortedData, filters]
   );
 
   let displayData = filtered;
   if (viewMode === "top10") displayData = filtered.slice(0, 10);
-  else if (viewMode === "rarezas") displayData = filtered.filter((i: any) => i.isRare);
+  else if (viewMode === "rarezas") displayData = filtered.filter((i) => i.isRare);
 
   const sectionTitle = () => {
     if (viewMode === "top10") return "Tus 10 más cotizados";
@@ -138,7 +154,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   };
 
   const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
-  const filteredTotalValue = displayData.reduce((sum: number, item: any) => sum + item.price, 0);
+  const filteredTotalValue = displayData.reduce((sum, item) => sum + item.price, 0);
   const clearFilters = () => {
     setSearch(""); setGenre(""); setStyleFilter(""); setYear(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
   };
@@ -203,19 +219,19 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
         </select>
         <select value={genre} onChange={(e) => setGenre(e.target.value)} className={styles.select}>
           <option value="">Género...</option>
-          {genres.map((g: any) => <option key={g} value={g}>{g}</option>)}
+          {genres.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
         <select value={styleFilter} onChange={(e) => setStyleFilter(e.target.value)} className={styles.select}>
           <option value="">Estilo...</option>
-          {stylesList.map((s: any) => <option key={s} value={s}>{s}</option>)}
+          {stylesList.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={year} onChange={(e) => setYear(e.target.value)} className={styles.select}>
           <option value="">Año...</option>
-          {years.map((y: any) => <option key={y} value={y}>{y}</option>)}
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
         <select value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)} className={styles.select}>
           <option value="">Sello...</option>
-          {labelsList.map((l: any) => <option key={l} value={l}>{l}</option>)}
+          {labelsList.map((l) => <option key={l} value={l}>{l}</option>)}
         </select>
         <select value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
           <option value="">Estado...</option>
@@ -229,10 +245,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
           <option value="Poor (P)">Poor (P)</option>
           <option value="__unknown__">Sin datos en Discogs</option>
         </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={styles.select}>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as OrdenColeccion)} className={styles.select}>
           <option value="priceDesc">Mayor precio</option><option value="priceAsc">Menor precio</option><option value="artistAsc">A-Z</option><option value="yearDesc">Más reciente</option>
         </select>
-        <select value={viewMode} onChange={(e) => setViewMode(e.target.value as any)} className={styles.select}>
+        <select value={viewMode} onChange={(e) => setViewMode(e.target.value as VistaColeccion)} className={styles.select}>
           <option value="all">Ver Colección</option><option value="top10">Top 10</option><option value="rarezas">Rarezas</option>
         </select>
       </div>
@@ -241,7 +257,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
 
   // Mismo constructor que usa la sincronización de la URL, para que lo que se
   // envía a la ficha y lo que se recupera al volver no puedan divergir.
-  const getReleaseUrl = (releaseId: any) => {
+  const getReleaseUrl = (releaseId: string | number) => {
     const qs = construirQuery(filters, sortBy, viewMode).toString();
     return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
   };
@@ -307,7 +323,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
             </div>
           ) : (
           <div className={styles.grid}>
-            {displayData.map((item: any) => (
+            {displayData.map((item) => (
               <a key={item.release_id} href={getReleaseUrl(item.release_id)} className={styles.card}>
                 <div className={styles.coverWrapper}>
                   {item.record?.cover_image ? (
@@ -360,7 +376,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders 
   );
 }
 
-export default function ClientDashboard(props: any) {
+export default function ClientDashboard(props: PropsDashboard) {
   return (
     <Suspense fallback={<div style={{ padding: 40, color: '#fff' }}>Cargando colección...</div>}>
       <DashboardInner {...props} />
@@ -368,7 +384,7 @@ export default function ClientDashboard(props: any) {
   );
 }
 
-function KPI({ label, value, subText }: any) {
+function KPI({ label, value, subText }: { label: string; value: string; subText?: string }) {
   return (
     <div className={styles.kpiCard}>
       <div className={styles.kpiLabel}>{label}</div>

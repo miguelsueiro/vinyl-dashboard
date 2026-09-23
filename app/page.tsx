@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import ClientDashboard from "./ui";
+import type { Disco, PrecioActual, Snapshot, CarpetaInteligente } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,8 @@ export default async function Home() {
   );
 
   // Helper to fetch all rows with pagination (max 1000 per request)
-  const fetchAll = async (table: string, orderCol?: string) => {
-    let all: any[] = [];
+  const fetchAll = async <T,>(table: string, orderCol?: string): Promise<T[]> => {
+    let all: T[] = [];
     let fetched = 1000;
     let offset = 0;
     while (fetched === 1000) {
@@ -35,14 +36,14 @@ export default async function Home() {
   // pasando de ~1.500 dejaba de haber dos lecturas por disco, así que los que
   // caían fuera del corte marcaban "estable" sin haberlo estado.
   const [allRecords, latestPrices, snapshotsRes, smartFoldersRes] = await Promise.all([
-    fetchAll("records"),
-    fetchAll("latest_prices"),
+    fetchAll<Disco>("records"),
+    fetchAll<PrecioActual>("latest_prices"),
     supabase.from("collection_snapshots").select("*").order("created_at", { ascending: true }),
     supabase.from("smart_folders").select("*").order("created_at", { ascending: true })
   ]);
 
-  const snapshots = snapshotsRes.data || [];
-  const smartFolders = smartFoldersRes.data || [];
+  const snapshots = (snapshotsRes.data ?? []) as Snapshot[];
+  const smartFolders = (smartFoldersRes.data ?? []) as CarpetaInteligente[];
 
   console.log(`📊 DB Counts - Records: ${allRecords.length}, Latest Prices: ${latestPrices.length}, Snapshots: ${snapshots.length}, Smart Folders: ${smartFolders.length}`);
 

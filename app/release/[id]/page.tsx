@@ -11,6 +11,9 @@ import { getFiabilidad } from "@/lib/confidence";
 import {
   vecinos, filtrosDesdeParams, ordenDesdeParams, calcularTendencia, redondear,
 } from "@/lib/collection";
+import type {
+  Disco, PrecioActual, PrecioHistorico, ReleaseDiscogs, PistaDiscogs, CreditoDiscogs,
+} from "@/lib/types";
 
 export default async function ReleasePage({ 
   params, 
@@ -34,8 +37,8 @@ export default async function ReleasePage({
   // -1 y las dos salían muertas). Y hacen falta los precios, porque el orden por
   // defecto es por precio y sin ellos la ficha navegaba en otro orden distinto
   // del que el usuario tenía en pantalla.
-  const fetchAll = async (table: string, columns: string) => {
-    let all: any[] = [];
+  const fetchAll = async <T,>(table: string, columns: string): Promise<T[]> => {
+    let all: T[] = [];
     let offset = 0;
     for (;;) {
       const { data, error } = await supabase.from(table).select(columns).range(offset, offset + 999);
@@ -46,7 +49,7 @@ export default async function ReleasePage({
         break;
       }
       if (!data) break;
-      all = all.concat(data);
+      all = all.concat(data as T[]);
       if (data.length < 1000) break;
       offset += 1000;
     }
@@ -54,15 +57,15 @@ export default async function ReleasePage({
   };
 
   const [navRecords, navPrices] = await Promise.all([
-    fetchAll("records", "discogs_release_id, artist, title, year, genre, style, label, format, condition_vinyl, condition_sleeve"),
-    fetchAll("latest_prices", "release_id, median_price, lowest_price"),
+    fetchAll<Disco>("records", "discogs_release_id, artist, title, year, genre, style, label, format, condition_vinyl, condition_sleeve"),
+    fetchAll<PrecioActual>("latest_prices", "release_id, median_price, lowest_price"),
   ]);
 
   const priceByRelease = new Map<number, number>(
-    navPrices.map((p: any) => [Number(p.release_id), redondear(p.median_price ?? p.lowest_price)])
+    navPrices.map((p) => [Number(p.release_id), redondear(p.median_price ?? p.lowest_price)])
   );
 
-  const navItems = navRecords.map((r: any) => ({
+  const navItems = navRecords.map((r) => ({
     release_id: Number(r.discogs_release_id),
     price: priceByRelease.get(Number(r.discogs_release_id)) ?? 0,
     record: r,
@@ -85,7 +88,7 @@ export default async function ReleasePage({
     .order("created_at", { ascending: false });
 
   // Fetch extra data from Discogs API (SSR)
-  let discogsRelease: any = null;
+  let discogsRelease: ReleaseDiscogs | null = null;
   try {
     const discogsRes = await fetch(`https://api.discogs.com/releases/${id}`, {
       headers: {
@@ -95,8 +98,8 @@ export default async function ReleasePage({
       next: { revalidate: 3600 } // Cache for 1 hour
     });
     if (discogsRes.ok) discogsRelease = await discogsRes.json();
-  } catch (e) {
-    // silently fail
+  } catch {
+    // Si Discogs falla, la ficha se pinta igual sin tracklist ni créditos.
   }
 
   if (!recordsData) {
@@ -137,7 +140,7 @@ export default async function ReleasePage({
     return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
   };
 
-  const getNavUrl = (newId: any) => {
+  const getNavUrl = (newId: string | number) => {
     const params = new URLSearchParams();
     Object.entries(sp).forEach(([key, value]) => {
       if (value) params.set(key, value.toString());
@@ -152,7 +155,7 @@ export default async function ReleasePage({
         nextUrl={nextId ? getNavUrl(nextId) : null}
       />
       <div className={styles.navRow}>
-        <Link href={`/${new URLSearchParams(sp as any).toString() ? `?${new URLSearchParams(sp as any).toString()}` : ""}`} className={styles.backBtn}>
+        <Link href={`/${new URLSearchParams(sp as Record<string, string>).toString() ? `?${new URLSearchParams(sp as Record<string, string>).toString()}` : ""}`} className={styles.backBtn}>
           <span>←</span> Volver
         </Link>
         <nav className={styles.quickNav} aria-label="Navegar por la colección">
@@ -265,11 +268,11 @@ export default async function ReleasePage({
 
           <div className={styles.extraColumns}>
             {/* TRACKLIST */}
-            {discogsRelease.tracklist?.length > 0 && (
+            {(discogsRelease.tracklist?.length ?? 0) > 0 && (
               <div className={styles.extraSection}>
                 <h3 className={styles.extraTitle}>Tracklist</h3>
                 <ol className={styles.tracklist}>
-                  {discogsRelease.tracklist.map((track: any, i: number) => (
+                  {discogsRelease.tracklist!.map((track: PistaDiscogs, i: number) => (
                     <li key={i} className={`${styles.trackItem} ${track.type_ === 'heading' ? styles.trackHeading : ''}`}>
                       {track.type_ !== 'heading' && (
                         <span className={styles.trackPos}>{track.position || ''}</span>
@@ -284,11 +287,11 @@ export default async function ReleasePage({
 
             <div className={styles.extraRight}>
               {/* CREDITS */}
-              {discogsRelease.extraartists?.length > 0 && (
+              {(discogsRelease.extraartists?.length ?? 0) > 0 && (
                 <div className={styles.extraSection}>
                   <h3 className={styles.extraTitle}>Créditos</h3>
                   <ul className={styles.creditsList}>
-                    {discogsRelease.extraartists.map((credit: any, i: number) => (
+                    {discogsRelease.extraartists!.map((credit: CreditoDiscogs, i: number) => (
                       <li key={i} className={styles.creditItem}>
                         <span className={styles.creditRole}>{credit.role}</span>
                         <span className={styles.creditName}>{credit.name}</span>
@@ -341,21 +344,21 @@ export default async function ReleasePage({
           <h2 className={styles.historyTitle}>Historial de Variaciones</h2>
           <ul className={styles.historyList}>
             {(() => {
-              const displayedEntries: any[] = [];
+              const displayedEntries: PrecioHistorico[] = [];
               let lastPrice = -1;
 
               [...currentPrices].reverse().forEach((p, index) => {
-                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
+                const pVal = redondear(p.median_price ?? p.lowest_price);
                 if (index === 0 || index === currentPrices.length - 1 || pVal !== lastPrice) {
                   displayedEntries.push(p);
                   lastPrice = pVal;
                 }
               });
 
-              return displayedEntries.reverse().map((p: any, i: number) => {
-                const pVal = Math.round((p.median_price || p.lowest_price) * 100) / 100;
+              return displayedEntries.reverse().map((p, i) => {
+                const pVal = redondear(p.median_price ?? p.lowest_price);
                 const nextEntry = i < displayedEntries.length - 1 ? displayedEntries[i+1] : null;
-                const nextPrice = nextEntry ? Math.round((nextEntry.median_price || nextEntry.lowest_price) * 100) / 100 : pVal;
+                const nextPrice = nextEntry ? redondear(nextEntry.median_price ?? nextEntry.lowest_price) : pVal;
                 
                 let itemTrend = "stable";
                 if (pVal > nextPrice) itemTrend = "up";
