@@ -12,6 +12,7 @@ import StyleChart from "./genre-chart";
 import { IconStar, IconEuro, IconArrowUp, IconArrowDown } from "@/components/icons";
 import { separarTokens } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, DiscoConRareza } from "@/lib/types";
+import { puntuacionRareza, explicarRareza } from "@/lib/rareza";
 
 // `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
 // esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
@@ -80,11 +81,10 @@ export default function AnalyticsView({ records, enriched, urlDisco }: {
     [enriched]
   );
 
-  // Caro y con poca oferta = raro. El +0.5 evita dividir por cero cuando no hay
-  // ninguna copia a la venta, que es justo el caso más escaso.
+  // Misma definición que usa la vista "Rarezas" de la colección: ver lib/rareza.ts
   const topRare = useMemo(
     (): DiscoConRareza[] => enriched
-      .map((item) => ({ ...item, rareScore: item.price / ((Number(item.num_for_sale) || 0) + 0.5) }))
+      .map((item) => ({ ...item, rareScore: puntuacionRareza(item.price, item.num_for_sale) }))
       .sort((a, b) => b.rareScore - a.rareScore)
       .slice(0, 5),
     [enriched]
@@ -176,7 +176,7 @@ export default function AnalyticsView({ records, enriched, urlDisco }: {
                   <span className={styles.rankIndex}><IconStar className={styles.rankStar} /></span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
-                    <div className={styles.rankPrice}>Score: {item.rareScore.toFixed(1)}</div>
+                    <div className={styles.rankPrice}>{explicarRareza(item.price, item.num_for_sale)}</div>
                   </div>
                 </Link>
               );

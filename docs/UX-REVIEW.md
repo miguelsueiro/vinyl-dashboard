@@ -96,7 +96,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] KPIs por encima del gráfico
 - [x] Chips de filtros y etiquetas visibles (control segmentado, pendiente)
 - [x] Contador en vivo en carpetas (toasts en lugar de `alert()`, pendiente)
-- [ ] Una sola definición de rareza
+- [x] Una sola definición de rareza
 
 ### Fase 3 — Estructural
 - [ ] Sistema de diseño mínimo: tokens, `RecordCard`, `FilterBar`, `Modal`, `Toast`, `EmptyState`

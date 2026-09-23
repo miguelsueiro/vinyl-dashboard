@@ -15,6 +15,7 @@ import {
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
+import { esRaro } from "@/lib/rareza";
 import type {
   Disco, PrecioActual, Snapshot, CarpetaInteligente, DiscoConPrecio, Tendencia,
 } from "@/lib/types";
@@ -106,7 +107,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
 
     const confidence = getFiabilidad(p.num_for_sale, record?.condition_vinyl);
 
-    return { ...p, record, price, prevPrice, trend, confidence, isRare: price >= 40 && Number(p.num_for_sale) === 0 };
+    return { ...p, record, price, prevPrice, trend, confidence, isRare: esRaro(price, p.num_for_sale) };
   }), [latestPrices, recordMap]);
 
   const lastSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
@@ -429,7 +430,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
               </h3>
               <p className={styles.emptyGridText}>
                 {viewMode === "rarezas"
-                  ? "Las rarezas son discos de 40 € o más que ahora mismo no vende nadie. Prueba a quitar algún filtro."
+                  ? "Las rarezas son los discos caros y con poca o ninguna copia a la venta. Prueba a quitar algún filtro."
                   : "Hay 1.330 discos en la colección, pero ninguno cumple lo que has pedido. Prueba a quitar algún filtro."}
               </p>
               <button onClick={clearFilters} className={styles.emptyGridBtn}>
