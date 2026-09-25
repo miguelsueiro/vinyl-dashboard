@@ -11,18 +11,20 @@ import AnalyticsView from "./analytics";
 import RandomView from "./random-view";
 import SmartFoldersView from "./smart-folders";
 import {
-  IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose
+  IconSearch, IconFilter, IconChevronDown, IconChevronUp, IconClose, IconFolder
 } from "@/components/icons";
+import { createSmartFolder } from "./actions";
 import { getFiabilidad, resumirFiabilidad } from "@/lib/confidence";
 import { esRaro } from "@/lib/rareza";
 import type {
   Disco, PrecioActual, Snapshot, CarpetaInteligente, DiscoConPrecio, Tendencia,
+  ReglasCarpeta,
 } from "@/lib/types";
 import type { Frescura } from "@/lib/fechas";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
-  construirQuery, filtros, etiquetaRango,
+  construirQuery, filtros, etiquetaRango, OPCIONES_FORMATO, OPCIONES_ESTADO, ESTADO_SIN_DATO,
   FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
   type PestanaDashboard,
@@ -92,6 +94,14 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const [viewMode, setViewMode] = useState<VistaColeccion>(() => vistaDesdeParams(searchParams));
   const [sortBy, setSortBy] = useState<OrdenColeccion>(() => ordenDesdeParams(searchParams));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Las carpetas viven aquí y no dentro de la sección de Carpetas porque ahora
+  // también se crean desde la portada: si el estado estuviera allí, la carpeta
+  // recién guardada no aparecería hasta recargar.
+  const [folders, setFolders] = useState<CarpetaInteligente[]>(initialSmartFolders || []);
+  const [guardando, setGuardando] = useState(false);
+  const [nombreCarpeta, setNombreCarpeta] = useState<string | null>(null);
+  const [avisoCarpeta, setAvisoCarpeta] = useState("");
 
   const recordMap = useMemo(() => new Map<number, Disco>(records.map((r) => [Number(r.discogs_release_id), r])), [records]);
   
@@ -215,6 +225,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
     setSearch(""); setGenre(""); setStyleFilter(""); setYearMin(""); setYearMax(""); setPriceMin(""); setPriceMax(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
   };
 
+  const AvisoCarpeta = avisoCarpeta ? (
+    <p className={styles.avisoCarpeta} role="status">{avisoCarpeta}</p>
+  ) : null;
+
   const tabs = (
     <div className={styles.tabsContainer} role="navigation" aria-label="Secciones">
       <button
@@ -270,9 +284,47 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   if (conditionFilter) chipsActivos.push({
     id: "condition",
     etiqueta: "Estado",
-    valor: conditionFilter === "__unknown__" ? "Sin datos en Discogs" : conditionFilter,
+    valor: conditionFilter === ESTADO_SIN_DATO ? "Sin datos en Discogs" : conditionFilter,
     quitar: () => setConditionFilter(""),
   });
+
+  // Lo que hay filtrado, tal cual, listo para guardarse. Los filtros y las
+  // reglas de una carpeta son el mismo modelo, así que no hay que traducir:
+  // solo quitar lo que está vacío, que significa "sin regla".
+  const reglasDeLosFiltros = (): ReglasCarpeta => ({
+    ...(search.trim() && { search: search.trim() }),
+    ...(genre && { genre }),
+    ...(styleFilter && { style: styleFilter }),
+    ...(labelFilter && { label: labelFilter }),
+    ...(formatFilter !== "all" && { format: formatFilter }),
+    ...(conditionFilter && { condition: conditionFilter }),
+    ...(yearMin && { yearMin }),
+    ...(yearMax && { yearMax }),
+    ...(priceMin && { priceMin }),
+    ...(priceMax && { priceMax }),
+  });
+
+  // El nombre que se propone: los propios filtros, en el orden en que se ven.
+  const nombrePropuesto = () => chipsActivos.map((c) => c.valor).join(" · ").slice(0, 60);
+
+  const guardarComoCarpeta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const nombre = (nombreCarpeta || "").trim();
+    if (!nombre || guardando) return;
+
+    setGuardando(true);
+    setAvisoCarpeta("");
+    const res = await createSmartFolder(nombre, reglasDeLosFiltros());
+    setGuardando(false);
+
+    if (res.success && res.folder) {
+      setFolders([...folders, res.folder as CarpetaInteligente]);
+      setNombreCarpeta(null);
+      setAvisoCarpeta(`Carpeta "${nombre}" creada con ${displayData.length} discos.`);
+    } else {
+      setAvisoCarpeta(`No se pudo crear: ${res.error}`);
+    }
+  };
 
   // Fuera de FiltersContent a propósito: en móvil los filtros van dentro de un
   // acordeón plegado, así que dentro no se verían justo cuando más falta hacen.
@@ -291,6 +343,34 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           <IconClose className={styles.chipIcon} />
         </button>
       ))}
+
+      {/* Lo que se ve en pantalla ya es la definición de una carpeta; solo le
+          falta un nombre. Antes había que ir a Carpetas y repetir los filtros
+          a mano en el modal. */}
+      {nombreCarpeta === null ? (
+        <button type="button" className={styles.chipAccion} onClick={() => setNombreCarpeta(nombrePropuesto())}>
+          <IconFolder className={styles.chipIcon} /> Guardar como carpeta
+        </button>
+      ) : (
+        <form className={styles.guardarCarpeta} onSubmit={guardarComoCarpeta}>
+          <input
+            autoFocus
+            value={nombreCarpeta}
+            onChange={(e) => setNombreCarpeta(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") setNombreCarpeta(null); }}
+            className={styles.guardarCarpetaInput}
+            placeholder="Nombre de la carpeta"
+            aria-label="Nombre de la carpeta"
+            maxLength={80}
+          />
+          <button type="submit" className={styles.chipAccion} disabled={guardando || !nombreCarpeta.trim()}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </button>
+          <button type="button" className={styles.chipAccion} onClick={() => setNombreCarpeta(null)}>
+            Cancelar
+          </button>
+        </form>
+      )}
     </div>
   ) : null;
 
@@ -323,12 +403,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           <label className={styles.filterLabel} htmlFor="f-formato">Formato</label>
           <select id="f-formato" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} className={styles.select}>
             <option value="all">Todos</option>
-            <option value="LP">LP</option>
-            <option value="10in">10&quot;</option>
-            <option value="7in">7&quot;</option>
-            <option value="CD">CD</option>
-            <option value="Cassette">Cassette</option>
-            <option value="Vinilo">Otros vinilos</option>
+            {OPCIONES_FORMATO.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
           </select>
         </div>
 
@@ -387,15 +462,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           <label className={styles.filterLabel} htmlFor="f-estado">Estado</label>
           <select id="f-estado" value={conditionFilter} onChange={(e) => setConditionFilter(e.target.value)} className={styles.select}>
             <option value="">Todos</option>
-            <option value="Mint (M)">Mint (M)</option>
-            <option value="Near Mint (NM or M-)">Near Mint (NM)</option>
-            <option value="Very Good Plus (VG+)">Very Good Plus (VG+)</option>
-            <option value="Very Good (VG)">Very Good (VG)</option>
-            <option value="Good Plus (G+)">Good Plus (G+)</option>
-            <option value="Good (G)">Good (G)</option>
-            <option value="Fair (F)">Fair (F)</option>
-            <option value="Poor (P)">Poor (P)</option>
-            <option value="__unknown__">Sin datos en Discogs</option>
+            {OPCIONES_ESTADO.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
           </select>
         </div>
 
@@ -484,6 +551,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           </div>
 
           {ChipsActivos}
+          {AvisoCarpeta}
 
           <h2 className={styles.sectionTitle}>
             <div className={styles.titleText}>{sectionTitle()} <span className={styles.recordCountBadge}>{displayData.length}</span></div>
@@ -533,7 +601,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           )}
         </>
       ) : activeTab === "folders" ? (
-        <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} urlDisco={urlDiscoDeSeccion} />
+        <SmartFoldersView records={records} enriched={enriched} folders={folders} setFolders={setFolders} urlDisco={urlDiscoDeSeccion} />
       ) : activeTab === "analytics" ? (
         <AnalyticsView enriched={enriched} urlDisco={urlDiscoDeSeccion} verEnColeccion={verEnColeccion} />
       ) : (

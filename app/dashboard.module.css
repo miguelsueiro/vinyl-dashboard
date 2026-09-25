@@ -455,6 +455,60 @@
 .chartsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 /* Tooltips de los gráficos. Estaban escritos con `style` dentro de cada
    gráfico, cada uno con su negro y su borde. */
+/* Botón con la misma forma que un chip: va en esa fila y hace lo contrario,
+   guardar lo que los chips permiten quitar. */
+.chipAccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px dashed var(--borde-marcado);
+  background: transparent;
+  border-radius: 999px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chipAccion:hover:not(:disabled) {
+  border-style: solid;
+  border-color: var(--acento-borde);
+  color: var(--texto);
+}
+
+.chipAccion:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.guardarCarpeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.guardarCarpetaInput {
+  height: 32px;
+  min-width: 220px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--borde-fuerte);
+  background: var(--campo);
+  color: var(--texto);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.avisoCarpeta {
+  margin: -20px 0 28px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+}
+
 .chartTooltip {
   background: rgba(0, 0, 0, 0.92);
   border: 1px solid var(--borde-fuerte);

@@ -58,7 +58,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 ### Carpetas (`app/smart-folders.tsx`)
 - [Alta] Editar/borrar con `opacity: 0` hasta hover. → Siempre visibles o menú "⋯".
 - [Alta] Sin vista previa de coincidencias al definir reglas. → Contador en vivo en el modal.
-- [Media] Reglas sin formato ni estado; modelo de filtro distinto al de Colección. → Componente común + "Guardar como carpeta".
+- [Media] ~~Reglas sin formato ni estado; modelo de filtro distinto al de Colección.~~ → Componente común + "Guardar como carpeta". **Hecho** salvo el componente común de filtros.
 - [Media] Tarjetas `div` con onClick; modal sin `role="dialog"`, Escape, clic fuera ni foco.
 - [Media] `alert()`/`confirm()` nativos. → Toasts + deshacer.
 - [Media] Desde carpeta, flechas y "Volver" ignoran la carpeta. → Pasar id de carpeta en la URL.
@@ -100,7 +100,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 
 ### Fase 3 — Estructural
 - [x] Tokens de color y `RecordCard` (FilterBar, Modal, Toast, EmptyState: pendientes)
-- [x] Modelo de filtros único para Colección y Carpetas ("Guardar como carpeta", pendiente)
+- [x] Modelo de filtros único para Colección y Carpetas, con "Guardar como carpeta"
 - [x] Insights navegable; fusionar gráficos de estilos (scatter con escala log, pendiente)
 - [ ] Carga paginada / en servidor; navegación sin descargar toda la colección
 - [ ] Unificar idioma y nombre; valorar acento de color propio

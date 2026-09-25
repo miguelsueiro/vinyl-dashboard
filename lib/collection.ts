@@ -172,6 +172,37 @@ function estadoSinDato(estado: string | null | undefined): boolean {
  * Cómo se lee un rango en un chip: "1994", "desde 1994", "hasta 1999" o
  * "1994–1999". Un rango abierto por un lado es la mitad de los casos.
  */
+/**
+ * Las opciones de formato y estado, en un solo sitio.
+ *
+ * Estaban escritas a mano en la barra de filtros. Al añadirlas también al
+ * modal de carpetas se colaron un "EP" y un "Single" que grupoFormato no
+ * devuelve nunca: habrían sido dos filtros que no encuentran nada.
+ */
+/** Valor especial del filtro de estado: los discos sin dato en Discogs. */
+export const ESTADO_SIN_DATO = "__unknown__";
+
+export const OPCIONES_FORMATO: Array<{ valor: string; etiqueta: string }> = [
+  { valor: "LP", etiqueta: "LP" },
+  { valor: "10in", etiqueta: '10"' },
+  { valor: "7in", etiqueta: '7"' },
+  { valor: "CD", etiqueta: "CD" },
+  { valor: "Cassette", etiqueta: "Cassette" },
+  { valor: "Vinilo", etiqueta: "Otros vinilos" },
+];
+
+export const OPCIONES_ESTADO: Array<{ valor: string; etiqueta: string }> = [
+  { valor: "Mint (M)", etiqueta: "Mint (M)" },
+  { valor: "Near Mint (NM or M-)", etiqueta: "Near Mint (NM)" },
+  { valor: "Very Good Plus (VG+)", etiqueta: "Very Good Plus (VG+)" },
+  { valor: "Very Good (VG)", etiqueta: "Very Good (VG)" },
+  { valor: "Good Plus (G+)", etiqueta: "Good Plus (G+)" },
+  { valor: "Good (G)", etiqueta: "Good (G)" },
+  { valor: "Fair (F)", etiqueta: "Fair (F)" },
+  { valor: "Poor (P)", etiqueta: "Poor (P)" },
+  { valor: ESTADO_SIN_DATO, etiqueta: "Sin datos en Discogs" },
+];
+
 export function etiquetaRango(min: string, max: string): string {
   if (min && max) return min === max ? min : `${min}–${max}`;
   if (min) return `desde ${min}`;
@@ -215,7 +246,7 @@ export function cumpleFiltros(item: ItemColeccion, f: FiltrosColeccion): boolean
     if (grupoFormato(r?.format) !== f.format) return false;
   }
 
-  if (f.condition === "__unknown__") {
+  if (f.condition === ESTADO_SIN_DATO) {
     if (!estadoSinDato(r?.condition_vinyl) || !estadoSinDato(r?.condition_sleeve)) return false;
   } else if (f.condition) {
     const buscado = f.condition.toLowerCase();

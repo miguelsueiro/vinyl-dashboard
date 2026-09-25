@@ -5,7 +5,7 @@ import RecordCard from "@/components/RecordCard";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconTrash, IconEdit, IconClose } from "@/components/icons";
 import styles from "./dashboard.module.css";
-import { cumpleFiltros, filtros, tokensUnicos } from "@/lib/collection";
+import { cumpleFiltros, filtros, tokensUnicos, OPCIONES_FORMATO, OPCIONES_ESTADO } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
 
 interface SmartFolder {
@@ -17,16 +17,18 @@ interface SmartFolder {
 export default function SmartFoldersView({
   records,
   enriched,
-  initialSmartFolders,
+  folders,
+  setFolders,
   urlDisco
 }: {
   records: Disco[];
   enriched: DiscoConPrecio[];
-  initialSmartFolders: SmartFolder[];
+  /** La lista vive en la portada: desde allí también se crean carpetas. */
+  folders: SmartFolder[];
+  setFolders: (carpetas: SmartFolder[]) => void;
   /** La construye la portada para que al volver se conserve la sección. */
   urlDisco: (releaseId: string | number) => string;
 }) {
-  const [folders, setFolders] = useState<SmartFolder[]>(initialSmartFolders || []);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   
   // Modal / Form state
@@ -42,6 +44,12 @@ export default function SmartFoldersView({
   const [priceMinRule, setPriceMinRule] = useState("");
   const [priceMaxRule, setPriceMaxRule] = useState("");
   const [countryRule, setCountryRule] = useState("");
+  // Tres reglas que antes no existían. Se añadieron para que "Guardar como
+  // carpeta" no perdiera por el camino lo que hubiera filtrado en la portada,
+  // y aquí hacen falta para poder editarlas después.
+  const [searchRule, setSearchRule] = useState("");
+  const [formatRule, setFormatRule] = useState("all");
+  const [conditionRule, setConditionRule] = useState("");
   
   const [saving, setSaving] = useState(false);
 
@@ -119,7 +127,10 @@ export default function SmartFoldersView({
     ...(priceMinRule.trim() && { priceMin: priceMinRule.trim() }),
     ...(priceMaxRule.trim() && { priceMax: priceMaxRule.trim() }),
     ...(countryRule && { country: countryRule }),
-  }), [artistRule, genreRule, styleRule, labelRule, yearMinRule, yearMaxRule, priceMinRule, priceMaxRule, countryRule]);
+    ...(searchRule.trim() && { search: searchRule.trim() }),
+    ...(formatRule !== "all" && { format: formatRule }),
+    ...(conditionRule && { condition: conditionRule }),
+  }), [artistRule, genreRule, styleRule, labelRule, yearMinRule, yearMaxRule, priceMinRule, priceMaxRule, countryRule, searchRule, formatRule, conditionRule]);
 
   // Vista previa mientras se escriben las reglas: antes había que guardar la
   // carpeta y entrar a mirarla para saber cuántos discos cogía.
@@ -162,6 +173,9 @@ export default function SmartFoldersView({
     setPriceMinRule(folder.rules.priceMin || "");
     setPriceMaxRule(folder.rules.priceMax || "");
     setCountryRule(folder.rules.country || "");
+    setSearchRule(folder.rules.search || "");
+    setFormatRule(folder.rules.format || "all");
+    setConditionRule(folder.rules.condition || "");
     setShowModal(true);
   };
 
@@ -243,6 +257,9 @@ export default function SmartFoldersView({
                   priceMin: "Precio mín",
                   priceMax: "Precio máx",
                   country: "País",
+                  search: "Contiene",
+                  format: "Formato",
+                  condition: "Estado",
                 };
                 return (
                   <span key={key} className={styles.ruleBadge}>
@@ -361,6 +378,36 @@ export default function SmartFoldersView({
               </div>
 
               <h4 className={styles.rulesSectionTitle}>Definir Reglas de Filtrado</h4>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>El título o el artista contienen</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: live, demo, vol."
+                    value={searchRule}
+                    onChange={(e) => setSearchRule(e.target.value)}
+                    className={styles.modalInput}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Formato</label>
+                  <select value={formatRule} onChange={(e) => setFormatRule(e.target.value)} className={styles.modalInput}>
+                    <option value="all">Cualquiera</option>
+                    {OPCIONES_FORMATO.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Estado</label>
+                  <select value={conditionRule} onChange={(e) => setConditionRule(e.target.value)} className={styles.modalInput}>
+                    <option value="">Cualquiera</option>
+                    {OPCIONES_ESTADO.map((o) => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
+                  </select>
+                </div>
+              </div>
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>

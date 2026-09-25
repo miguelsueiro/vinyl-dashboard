@@ -61,16 +61,27 @@ export interface Snapshot {
   created_at: string;
 }
 
+/**
+ * Lo que guarda una carpeta. Es un subconjunto de FiltrosColeccion (mismos
+ * nombres de campo), así que cumpleFiltros las entiende sin traducir nada y
+ * lo que hay filtrado en la portada se puede guardar tal cual.
+ *
+ * Solo aparecen las reglas que el usuario ha puesto: una carpeta sin ninguna
+ * es todo el catálogo.
+ */
 export interface ReglasCarpeta {
+  search?: string;
   artist?: string;
   genre?: string;
   style?: string;
   label?: string;
+  country?: string;
+  format?: string;
+  condition?: string;
   yearMin?: string;
   yearMax?: string;
   priceMin?: string;
   priceMax?: string;
-  country?: string;
 }
 
 /** Fila de `smart_folders`. */

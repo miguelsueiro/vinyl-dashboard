@@ -14,6 +14,18 @@ import type { FiltrosColeccion } from "@/lib/collection";
 import type { DiscoConPrecio, DiscoConRareza } from "@/lib/types";
 import { puntuacionRareza, explicarRareza } from "@/lib/rareza";
 
+// Los tramos son medio abiertos: un disco de 100 € está en "100-200€" y no en
+// "50-100€". El filtro, en cambio, incluye los dos extremos, así que al pinchar
+// se pide hasta un céntimo menos. Si no, la barra decía 179 y la Colección
+// devolvía 180.
+const TRAMOS: Array<{ name: string; min: number; hasta: number | null }> = [
+  { name: "0-20€", min: 0, hasta: 20 },
+  { name: "20-50€", min: 20, hasta: 50 },
+  { name: "50-100€", min: 50, hasta: 100 },
+  { name: "100-200€", min: 100, hasta: 200 },
+  { name: "200€+", min: 200, hasta: null },
+];
+
 // `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
 // esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
 // con records.find() dentro de un map: 1.331 × 1.331 comparaciones, tres veces.
@@ -40,18 +52,6 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
 
   const formatEuroPrecise = (val: number) => 
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
-
-  // Los tramos son medio abiertos: un disco de 100 € está en "100-200€" y no
-  // en "50-100€". El filtro, en cambio, incluye los dos extremos, así que al
-  // pinchar se pide hasta un céntimo menos. Si no, la barra decía 179 y la
-  // Colección devolvía 180.
-  const TRAMOS = [
-    { name: "0-20€", min: 0, hasta: 20 },
-    { name: "20-50€", min: 20, hasta: 50 },
-    { name: "50-100€", min: 50, hasta: 100 },
-    { name: "100-200€", min: 100, hasta: 200 },
-    { name: "200€+", min: 200, hasta: null },
-  ];
 
   const histogramData = useMemo(() => TRAMOS.map((t) => ({
     ...t,
