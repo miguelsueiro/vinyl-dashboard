@@ -22,7 +22,8 @@ import type { Frescura } from "@/lib/fechas";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
-  construirQuery, FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
+  construirQuery, filtros, etiquetaRango,
+  FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
   type PestanaDashboard,
 } from "@/lib/collection";
@@ -79,7 +80,8 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const [search, setSearch] = useState(filtrosIniciales.search);
   const [genre, setGenre] = useState(filtrosIniciales.genre);
   const [styleFilter, setStyleFilter] = useState(filtrosIniciales.style);
-  const [year, setYear] = useState(filtrosIniciales.year);
+  const [yearMin, setYearMin] = useState(filtrosIniciales.yearMin);
+  const [yearMax, setYearMax] = useState(filtrosIniciales.yearMax);
   const [labelFilter, setLabelFilter] = useState(filtrosIniciales.label);
   const [formatFilter, setFormatFilter] = useState(filtrosIniciales.format);
   const [conditionFilter, setConditionFilter] = useState(filtrosIniciales.condition);
@@ -125,10 +127,13 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const years = useMemo(() => Array.from(new Set(records.map((r) => String(r.year)).filter((y) => y && y !== "null" && y !== "0"))).sort(), [records]);
   const labelsList = useMemo(() => Array.from(new Set(records.map((r) => r.label).filter((l): l is string => Boolean(l)))).sort(), [records]);
 
-  const filters: FiltrosColeccion = useMemo(() => ({
-    search, genre, style: styleFilter, year, label: labelFilter,
-    format: formatFilter, condition: conditionFilter,
-  }), [search, genre, styleFilter, year, labelFilter, formatFilter, conditionFilter]);
+  // filtros() rellena con los valores vacíos los campos que la portada no
+  // ofrece (artista, país, precio): el modelo es el mismo que el de Carpetas,
+  // aunque aquí no haya un control para cada cosa.
+  const filters: FiltrosColeccion = useMemo(() => filtros({
+    search, genre, style: styleFilter, label: labelFilter,
+    format: formatFilter, condition: conditionFilter, yearMin, yearMax,
+  }), [search, genre, styleFilter, labelFilter, formatFilter, conditionFilter, yearMin, yearMax]);
 
   const cambiarPestana = (destino: PestanaDashboard) => {
     setIsMenuOpen(false);
@@ -175,7 +180,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
   const filteredTotalValue = displayData.reduce((sum, item) => sum + item.price, 0);
   const clearFilters = () => {
-    setSearch(""); setGenre(""); setStyleFilter(""); setYear(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
+    setSearch(""); setGenre(""); setStyleFilter(""); setYearMin(""); setYearMax(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
   };
 
   const tabs = (
@@ -213,7 +218,14 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   if (formatFilter !== "all") chipsActivos.push({ id: "format", etiqueta: "Formato", valor: formatFilter, quitar: () => setFormatFilter("all") });
   if (genre) chipsActivos.push({ id: "genre", etiqueta: "Género", valor: genre, quitar: () => setGenre("") });
   if (styleFilter) chipsActivos.push({ id: "style", etiqueta: "Estilo", valor: styleFilter, quitar: () => setStyleFilter("") });
-  if (year) chipsActivos.push({ id: "year", etiqueta: "Año", valor: year, quitar: () => setYear("") });
+  if (yearMin || yearMax) {
+    chipsActivos.push({
+      id: "year",
+      etiqueta: "Año",
+      valor: etiquetaRango(yearMin, yearMax),
+      quitar: () => { setYearMin(""); setYearMax(""); },
+    });
+  }
   if (labelFilter) chipsActivos.push({ id: "label", etiqueta: "Sello", valor: labelFilter, quitar: () => setLabelFilter("") });
   if (conditionFilter) chipsActivos.push({
     id: "condition",
@@ -296,12 +308,31 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           </select>
         </div>
 
-        <div className={styles.filterField}>
-          <label className={styles.filterLabel} htmlFor="f-anio">Año</label>
-          <select id="f-anio" value={year} onChange={(e) => setYear(e.target.value)} className={styles.select}>
-            <option value="">Todos</option>
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+        <div className={`${styles.filterField} ${styles.filterFieldAnio}`}>
+          <label className={styles.filterLabel} htmlFor="f-anio-desde">Año</label>
+          {/* Rango, como en Carpetas. Siguen siendo listas de los años que hay
+              en la colección: escribir a mano permite pedir años inexistentes. */}
+          <div className={styles.rangoAnios}>
+            <select
+              id="f-anio-desde"
+              value={yearMin}
+              onChange={(e) => setYearMin(e.target.value)}
+              className={styles.select}
+              aria-label="Año desde"
+            >
+              <option value="">Desde</option>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select
+              value={yearMax}
+              onChange={(e) => setYearMax(e.target.value)}
+              className={styles.select}
+              aria-label="Año hasta"
+            >
+              <option value="">Hasta</option>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
         </div>
 
         <div className={styles.filterField}>

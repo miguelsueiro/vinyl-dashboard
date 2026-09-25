@@ -5,7 +5,7 @@ import RecordCard from "@/components/RecordCard";
 import { createSmartFolder, updateSmartFolder, deleteSmartFolder } from "./actions";
 import { IconTrash, IconEdit, IconClose } from "@/components/icons";
 import styles from "./dashboard.module.css";
-import { separarTokens, tokensUnicos } from "@/lib/collection";
+import { cumpleFiltros, filtros, tokensUnicos } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
 
 interface SmartFolder {
@@ -55,55 +55,16 @@ export default function SmartFoldersView({
 
   // Recibe las reglas sueltas, no una carpeta guardada: así sirve igual para
   // las carpetas existentes y para las que se están definiendo en el modal.
-  const itemsQueCumplen = useCallback((rules: ReglasCarpeta) => {
-    return enriched.filter((item) => {
-      
-      // Artista rule
-      if (rules.artist && !item.record?.artist?.toLowerCase().includes(rules.artist.toLowerCase())) {
-        return false;
-      }
-      
-      // Genero rule — token exacto: "Rock" no debe traer "Punk Rock"
-      if (rules.genre && !separarTokens(item.record?.genre).some(
-        (g: string) => g.toLowerCase() === rules.genre!.toLowerCase()
-      )) {
-        return false;
-      }
-      
-      // Estilo rule — token exacto
-      if (rules.style && !separarTokens(item.record?.style).some(
-        (s: string) => s.toLowerCase() === rules.style!.toLowerCase()
-      )) {
-        return false;
-      }
-      
-      // Sello rule
-      if (rules.label && !item.record?.label?.toLowerCase().includes(rules.label.toLowerCase())) {
-        return false;
-      }
-      
-      // Año min/max rule
-      if (item.record?.year) {
-        const itemYear = parseInt(String(item.record.year), 10);
-        if (rules.yearMin && itemYear < parseInt(rules.yearMin, 10)) return false;
-        if (rules.yearMax && itemYear > parseInt(rules.yearMax, 10)) return false;
-      } else if (rules.yearMin || rules.yearMax) {
-        return false; // has year rules but item doesn't have a year
-      }
-      
-      // Precio min/max rule
-      const itemPrice = item.price || 0;
-      if (rules.priceMin && itemPrice < parseFloat(rules.priceMin)) return false;
-      if (rules.priceMax && itemPrice > parseFloat(rules.priceMax)) return false;
-
-      // País rule
-      if (rules.country && !item.record?.country?.toLowerCase().includes(rules.country.toLowerCase())) {
-        return false;
-      }
-      
-      return true;
-    });
-  }, [enriched]);
+  //
+  // Quien decide si un disco encaja es cumpleFiltros, el mismo de la portada.
+  // Aquí había una segunda copia de esas comprobaciones, y ya habían divergido
+  // una vez: al arreglar la coincidencia por token de los géneros hubo que
+  // tocar los dos sitios. Las reglas son un subconjunto de los filtros, así
+  // que filtros() completa lo que una carpeta no usa.
+  const itemsQueCumplen = useCallback(
+    (rules: ReglasCarpeta) => enriched.filter((item) => cumpleFiltros(item, filtros(rules))),
+    [enriched],
+  );
 
   // Pre-calculate stats for all folders to display on the grid
   const foldersWithStats = useMemo(() => {

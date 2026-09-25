@@ -43,27 +43,57 @@ export interface ItemColeccion {
   } | null;
 }
 
+/**
+ * Un único modelo de filtro para toda la aplicación.
+ *
+ * Antes había dos: el de la colección (búsqueda, género, estilo, año como
+ * valor suelto, sello, formato, estado) y el de las carpetas (artista, género,
+ * estilo, sello, rango de años, rango de precios, país). Siete campos se
+ * repetían, cada uno con su propia implementación, y las dos se habían ido
+ * separando: al arreglar la coincidencia por token de los géneros hubo que
+ * tocarlo en los dos sitios.
+ *
+ * Cada vista rellena los campos que enseña y deja el resto vacíos; el
+ * comparador es el mismo.
+ */
 export interface FiltrosColeccion {
   search: string;
+  artist: string;
   genre: string;
   style: string;
-  year: string;
   label: string;
+  country: string;
   /** "all" o uno de GrupoFormato. */
   format: string;
   /** Estado exacto, o "__unknown__" para los que no tienen dato. */
   condition: string;
+  /** Años y precios como rango: en carpetas ya lo eran y en la colección era
+   *  un valor suelto, así que no se podía pedir "los noventa". */
+  yearMin: string;
+  yearMax: string;
+  priceMin: string;
+  priceMax: string;
 }
 
 export const FILTROS_VACIOS: FiltrosColeccion = {
   search: "",
+  artist: "",
   genre: "",
   style: "",
-  year: "",
   label: "",
+  country: "",
   format: "all",
   condition: "",
+  yearMin: "",
+  yearMax: "",
+  priceMin: "",
+  priceMax: "",
 };
+
+/** Construye unos filtros completos a partir de los campos que se quieran fijar. */
+export function filtros(parciales: Partial<FiltrosColeccion>): FiltrosColeccion {
+  return { ...FILTROS_VACIOS, ...parciales };
+}
 
 /**
  * Agrupa el formato libre de Discogs ("Vinyl, LP, Album, Reissue") en las
@@ -138,10 +168,21 @@ function estadoSinDato(estado: string | null | undefined): boolean {
   return !estado || estado === "Desconocido";
 }
 
-export function cumpleFiltros(item: ItemColeccion, filtros: FiltrosColeccion): boolean {
+/**
+ * Cómo se lee un rango en un chip: "1994", "desde 1994", "hasta 1999" o
+ * "1994–1999". Un rango abierto por un lado es la mitad de los casos.
+ */
+export function etiquetaRango(min: string, max: string): string {
+  if (min && max) return min === max ? min : `${min}–${max}`;
+  if (min) return `desde ${min}`;
+  if (max) return `hasta ${max}`;
+  return "";
+}
+
+export function cumpleFiltros(item: ItemColeccion, f: FiltrosColeccion): boolean {
   const r = item.record;
 
-  const q = filtros.search.trim().toLowerCase();
+  const q = f.search.trim().toLowerCase();
   if (q) {
     const coincide =
       (r?.artist || "").toLowerCase().includes(q) ||
@@ -150,22 +191,34 @@ export function cumpleFiltros(item: ItemColeccion, filtros: FiltrosColeccion): b
     if (!coincide) return false;
   }
 
+  // Artista y sello son texto libre: interesa la subcadena.
+  if (!contiene(r?.artist, f.artist)) return false;
+  if (!contiene(r?.label, f.label)) return false;
+  if (!contiene(r?.country, f.country)) return false;
+
   // Género y estilo son multivalor: coincidencia por token exacto.
-  if (!tieneToken(r?.genre, filtros.genre)) return false;
-  if (!tieneToken(r?.style, filtros.style)) return false;
-  // El sello es un texto libre y aquí sí interesa la subcadena.
-  if (!contiene(r?.label, filtros.label)) return false;
+  if (!tieneToken(r?.genre, f.genre)) return false;
+  if (!tieneToken(r?.style, f.style)) return false;
 
-  if (filtros.year && String(r?.year) !== filtros.year.trim()) return false;
-
-  if (filtros.format && filtros.format !== "all") {
-    if (grupoFormato(r?.format) !== filtros.format) return false;
+  if (f.yearMin || f.yearMax) {
+    const anio = parseInt(String(r?.year), 10);
+    // Sin año no se puede saber si cae en el rango: queda fuera.
+    if (Number.isNaN(anio)) return false;
+    if (f.yearMin && anio < parseInt(f.yearMin, 10)) return false;
+    if (f.yearMax && anio > parseInt(f.yearMax, 10)) return false;
   }
 
-  if (filtros.condition === "__unknown__") {
+  if (f.priceMin && item.price < parseFloat(f.priceMin)) return false;
+  if (f.priceMax && item.price > parseFloat(f.priceMax)) return false;
+
+  if (f.format && f.format !== "all") {
+    if (grupoFormato(r?.format) !== f.format) return false;
+  }
+
+  if (f.condition === "__unknown__") {
     if (!estadoSinDato(r?.condition_vinyl) || !estadoSinDato(r?.condition_sleeve)) return false;
-  } else if (filtros.condition) {
-    const buscado = filtros.condition.toLowerCase();
+  } else if (f.condition) {
+    const buscado = f.condition.toLowerCase();
     const coincide =
       (r?.condition_vinyl || "").toLowerCase() === buscado ||
       (r?.condition_sleeve || "").toLowerCase() === buscado;
@@ -174,6 +227,7 @@ export function cumpleFiltros(item: ItemColeccion, filtros: FiltrosColeccion): b
 
   return true;
 }
+
 
 /**
  * Devuelve una copia ordenada; no toca el array recibido.
@@ -250,14 +304,23 @@ function leerParam(sp: FuenteParams, clave: string): string {
 }
 
 export function filtrosDesdeParams(sp: FuenteParams): FiltrosColeccion {
+  // Los enlaces antiguos llevaban ?year=1994, un valor suelto. Se sigue
+  // entendiendo como un rango de un solo año para no romperlos.
+  const anioSuelto = leerParam(sp, "year");
+
   return {
     search: leerParam(sp, "search"),
+    artist: leerParam(sp, "artist"),
     genre: leerParam(sp, "genre"),
     style: leerParam(sp, "style"),
-    year: leerParam(sp, "year"),
     label: leerParam(sp, "label"),
+    country: leerParam(sp, "country"),
     format: leerParam(sp, "format") || "all",
     condition: leerParam(sp, "condition"),
+    yearMin: leerParam(sp, "yearMin") || anioSuelto,
+    yearMax: leerParam(sp, "yearMax") || anioSuelto,
+    priceMin: leerParam(sp, "priceMin"),
+    priceMax: leerParam(sp, "priceMax"),
   };
 }
 
@@ -296,7 +359,18 @@ export function construirQuery(
   if (filtros.search.trim()) params.set("search", filtros.search);
   if (filtros.genre) params.set("genre", filtros.genre);
   if (filtros.style) params.set("style", filtros.style);
-  if (filtros.year) params.set("year", filtros.year);
+  if (filtros.artist) params.set("artist", filtros.artist);
+  if (filtros.country) params.set("country", filtros.country);
+  // Un solo año se escribe como ?year= para que la URL no cargue con dos
+  // parámetros que dicen lo mismo.
+  if (filtros.yearMin && filtros.yearMin === filtros.yearMax) {
+    params.set("year", filtros.yearMin);
+  } else {
+    if (filtros.yearMin) params.set("yearMin", filtros.yearMin);
+    if (filtros.yearMax) params.set("yearMax", filtros.yearMax);
+  }
+  if (filtros.priceMin) params.set("priceMin", filtros.priceMin);
+  if (filtros.priceMax) params.set("priceMax", filtros.priceMax);
   if (filtros.label) params.set("label", filtros.label);
   if (filtros.format && filtros.format !== "all") params.set("format", filtros.format);
   if (filtros.condition) params.set("condition", filtros.condition);

@@ -27,7 +27,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Media] Placeholder como etiqueta en selects; sin chips de filtros activos ni contador en móvil.
 - [Media] "Ver Colección / Top 10 / Rarezas" como select entre filtros. → Control segmentado junto al título.
 - [Media] Tendencia: flecha junto al precio anterior sin delta. → "+3,20 €" / "+8 %".
-- [Media] Año como lista; en Carpetas es rango. → Rango en ambos.
+- [Media] ~~Año como lista; en Carpetas es rango.~~ → Rango en ambos. **Hecho**; `?year=` sigue valiendo.
 - [Media] ~1.330 tarjetas a la vez sin `loading="lazy"`. → Lazy, `next/image`, paginación/virtualización.
 - [Baja] Autocompletado solo artistas; la búsqueda no cubre sello.
 - [Baja] "Limpiar" resetea también orden y vista y está siempre visible.
@@ -100,7 +100,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 
 ### Fase 3 — Estructural
 - [x] Tokens de color y `RecordCard` (FilterBar, Modal, Toast, EmptyState: pendientes)
-- [ ] Modelo de filtros único para Colección y Carpetas
+- [x] Modelo de filtros único para Colección y Carpetas ("Guardar como carpeta", pendiente)
 - [ ] Insights navegable; fusionar gráficos de estilos
 - [ ] Carga paginada / en servidor; navegación sin descargar toda la colección
 - [ ] Unificar idioma y nombre; valorar acento de color propio

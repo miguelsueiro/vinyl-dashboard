@@ -1280,6 +1280,25 @@
   padding-left: 2px;
 }
 
+/* Dos desplegables donde el resto de filtros tiene uno, así que el hueco
+   tiene que dar para los dos: con el ancho normal "1990" salía como "19". */
+.filterFieldAnio {
+  min-width: 240px;
+}
+
+.rangoAnios {
+  display: flex;
+  gap: 8px;
+}
+
+.rangoAnios .select {
+  flex: 1;
+  min-width: 0;
+  /* Valores de cuatro cifras: no hace falta tanto aire a los lados. */
+  padding: 0 32px 0 14px;
+  background-position: right 10px center;
+}
+
 .filterField .select {
   min-width: 0;
   width: 100%;
