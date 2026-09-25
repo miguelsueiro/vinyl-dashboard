@@ -457,6 +457,36 @@
    gráfico, cada uno con su negro y su borde. */
 /* Botón con la misma forma que un chip: va en esa fila y hace lo contrario,
    guardar lo que los chips permiten quitar. */
+.verMas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 40px 0 8px;
+}
+
+.verMasBtn {
+  padding: 14px 32px;
+  border: 1px solid var(--borde-fuerte);
+  background: var(--superficie);
+  border-radius: 999px;
+  color: var(--texto);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.verMasBtn:hover {
+  background: var(--superficie-hover);
+  border-color: var(--acento-borde);
+}
+
+.verMasCuenta {
+  color: var(--texto-decorativo);
+  font-size: 12px;
+}
+
 .chipAccion {
   display: inline-flex;
   align-items: center;

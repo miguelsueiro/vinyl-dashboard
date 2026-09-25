@@ -28,7 +28,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Media] "Ver Colección / Top 10 / Rarezas" como select entre filtros. → Control segmentado junto al título.
 - [Media] Tendencia: flecha junto al precio anterior sin delta. → "+3,20 €" / "+8 %".
 - [Media] ~~Año como lista; en Carpetas es rango.~~ → Rango en ambos. **Hecho**; `?year=` sigue valiendo.
-- [Media] ~1.330 tarjetas a la vez sin `loading="lazy"`. → Lazy, `next/image`, paginación/virtualización.
+- [Media] ~~~1.330 tarjetas a la vez sin `loading="lazy"`.~~ → Lazy, `next/image`, paginación/virtualización. **Hecho** lazy y paginación de 60 en 60; `next/image` pendiente.
 - [Baja] Autocompletado solo artistas; la búsqueda no cubre sello.
 - [Baja] "Limpiar" resetea también orden y vista y está siempre visible.
 - [Baja] "Total Discos" cuenta `records` y el badge cuenta discos con precio; valor total del snapshot vs "Total selección" de precios actuales.
@@ -72,7 +72,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - Estados: loader a pantalla completa en cada navegación; vacíos solo en Carpetas/Variaciones; errores con `alert()`; ninguna fecha de última sincronización visible.
 - Consistencia: tarjeta duplicada (extraer `RecordCard`), iconos mixtos, colores hardcodeados (→ tokens en `:root`), euros con 0/2 decimales, "discos/álbumes/unidades".
 - Responsive: títulos de 11px en grid móvil; `<datalist>` flojo en iOS; coverflow con setState por frame.
-- Rendimiento: portada `force-dynamic` descarga todo en cada visita; cada ficha descarga toda la colección para anterior/siguiente.
+- ~~Rendimiento: portada `force-dynamic` descarga todo en cada visita; cada ficha descarga toda la colección para anterior/siguiente.~~ **Hecho**: lectura única cacheada que comparten las dos páginas.
 
 ## Hoja de ruta
 
@@ -102,5 +102,5 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Tokens de color y `RecordCard` (FilterBar, Modal, Toast, EmptyState: pendientes)
 - [x] Modelo de filtros único para Colección y Carpetas, con "Guardar como carpeta"
 - [x] Insights navegable; fusionar gráficos de estilos (scatter con escala log, pendiente)
-- [ ] Carga paginada / en servidor; navegación sin descargar toda la colección
+- [x] Carga paginada y catálogo cacheado; la ficha ya no relee la colección (virtualización y filtrado en servidor, pendientes)
 - [ ] Unificar idioma y nombre; valorar acento de color propio

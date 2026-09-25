@@ -8,12 +8,13 @@ import {
   IconArrowUp, IconArrowDown, IconMinus
 } from "@/components/icons";
 import { getFiabilidad } from "@/lib/confidence";
+import { leerCatalogo } from "@/lib/datos";
 import {
   vecinos, filtrosDesdeParams, ordenDesdeParams, calcularTendencia, redondear,
   variacion, formatearDelta,
 } from "@/lib/collection";
 import type {
-  Disco, PrecioActual, PrecioHistorico, ReleaseDiscogs, PistaDiscogs, CreditoDiscogs,
+  PrecioHistorico, ReleaseDiscogs, PistaDiscogs, CreditoDiscogs,
 } from "@/lib/types";
 
 export default async function ReleasePage({ 
@@ -33,42 +34,20 @@ export default async function ReleasePage({
 
   // 1. Obtener navegación.
   //
-  // Hay que paginar: Supabase corta en 1.000 filas y la colección pasa de eso,
-  // así que antes los discos que quedaban fuera no tenían flechas (indexOf daba
-  // -1 y las dos salían muertas). Y hacen falta los precios, porque el orden por
-  // defecto es por precio y sin ellos la ficha navegaba en otro orden distinto
-  // del que el usuario tenía en pantalla.
-  const fetchAll = async <T,>(table: string, columns: string): Promise<T[]> => {
-    let all: T[] = [];
-    let offset = 0;
-    for (;;) {
-      const { data, error } = await supabase.from(table).select(columns).range(offset, offset + 999);
-      if (error) {
-        // Un fallo a medias devolvería una lista incompleta y las flechas
-        // saltarían discos sin avisar. Mejor dejar constancia.
-        console.error(`❌ Error leyendo ${table} para la navegación:`, error.message);
-        break;
-      }
-      if (!data) break;
-      all = all.concat(data as T[]);
-      if (data.length < 1000) break;
-      offset += 1000;
-    }
-    return all;
-  };
+  // Las flechas dependen de los filtros y del orden que el usuario tenía en
+  // pantalla, así que hace falta la lista entera para saber quién va antes y
+  // quién después. Lo que no hacía falta era volver a pedírsela a Supabase en
+  // cada ficha: son las mismas 2.660 filas que ya ha leído la portada. Ahora
+  // las dos páginas comparten la misma lectura cacheada.
+  const { records: navRecords, latestPrices: navPrices } = await leerCatalogo();
 
-  const [navRecords, navPrices] = await Promise.all([
-    fetchAll<Disco>("records", "discogs_release_id, artist, title, year, genre, style, label, format, condition_vinyl, condition_sleeve"),
-    fetchAll<PrecioActual>("latest_prices", "release_id, median_price, lowest_price"),
-  ]);
-
-  const priceByRelease = new Map<number, number>(
+  const precioPorDisco = new Map<number, number>(
     navPrices.map((p) => [Number(p.release_id), redondear(p.median_price ?? p.lowest_price)])
   );
 
   const navItems = navRecords.map((r) => ({
     release_id: Number(r.discogs_release_id),
-    price: priceByRelease.get(Number(r.discogs_release_id)) ?? 0,
+    price: precioPorDisco.get(Number(r.discogs_release_id)) ?? 0,
     record: r,
   }));
 

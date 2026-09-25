@@ -152,7 +152,7 @@ export default function RandomView({ records }: { records: Disco[] }) {
             if (isActive && !spinning) {
               return (
                 <Link
-                  key={record.id}
+                  key={record.discogs_release_id}
                   href={`/release/${record.discogs_release_id}`}
                   aria-label={`Ver ${record.artist ?? ""} – ${record.title ?? ""}`}
                 >
@@ -161,7 +161,7 @@ export default function RandomView({ records }: { records: Disco[] }) {
               );
             }
 
-            return <div key={record.id}>{itemContent}</div>;
+            return <div key={record.discogs_release_id}>{itemContent}</div>;
           })}
         </div>
       </div>

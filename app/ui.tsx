@@ -25,6 +25,7 @@ import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
   construirQuery, filtros, etiquetaRango, OPCIONES_FORMATO, OPCIONES_ESTADO, ESTADO_SIN_DATO,
+  POR_PAGINA, verDesdeParams,
   FILTROS_VACIOS, ORDEN_POR_DEFECTO, VISTA_POR_DEFECTO,
   type FiltrosColeccion, type OrdenColeccion, type VistaColeccion,
   type PestanaDashboard,
@@ -94,6 +95,11 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const [viewMode, setViewMode] = useState<VistaColeccion>(() => vistaDesdeParams(searchParams));
   const [sortBy, setSortBy] = useState<OrdenColeccion>(() => ordenDesdeParams(searchParams));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [paginado, setPaginado] = useState(() => ({
+    clave: construirQuery(filtrosDesdeParams(searchParams), ordenDesdeParams(searchParams), vistaDesdeParams(searchParams)).toString(),
+    visibles: verDesdeParams(searchParams),
+  }));
+
 
   // Las carpetas viven aquí y no dentro de la sección de Carpetas porque ahora
   // también se crean desde la portada: si el estado estuviera allí, la carpeta
@@ -172,6 +178,22 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
     window.scrollTo({ top: 0 });
   };
 
+  // Cuántas tarjetas se pintan. La colección son 1.330: pintarlas todas de
+  // golpe mandaba 3,1 MB de HTML en cada visita, la mayor parte de discos que
+  // nadie llega a ver. Se filtra y se suma sobre la lista completa, que eso sí
+  // hace falta; solo se recorta lo que se dibuja.
+  //
+  // Cambiar de filtro, de orden o de vista empieza otra lista y vuelve a la
+  // primera tanda. Va atado a la lista en lugar de reiniciarse desde un efecto
+  // porque un setState dentro de un efecto encadena un render de más.
+  // La clave la escribe construirQuery, que ya normaliza el orden y los
+  // valores por defecto: dos formas de pedir lo mismo dan la misma cadena.
+  // Se compara con la de la URL de llegada, para que un enlace con ?ver=180
+  // aparezca con sus 180 tarjetas y no recortado a la primera tanda.
+  const claveLista = construirQuery(filters, sortBy, viewMode).toString();
+  const visibles = paginado.clave === claveLista ? paginado.visibles : POR_PAGINA;
+  const verMas = () => setPaginado({ clave: claveLista, visibles: visibles + POR_PAGINA });
+
   const cambiarPestana = (destino: PestanaDashboard) => {
     setIsMenuOpen(false);
     if (destino === activeTab) return;
@@ -195,12 +217,12 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
     // los filtros a la vez, y en ese render activeTab todavía dice "analytics".
     // Con el valor viejo, este efecto devolvía al usuario a Insights.
     const pestanaActual = pestanaDesdeParams(new URLSearchParams(window.location.search));
-    const qs = construirQuery(filters, sortBy, viewMode, pestanaActual).toString();
+    const qs = construirQuery(filters, sortBy, viewMode, pestanaActual, visibles).toString();
     const destino = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
     if (destino !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(null, "", destino);
     }
-  }, [filters, sortBy, viewMode, activeTab]);
+  }, [filters, sortBy, viewMode, activeTab, visibles]);
 
   // Antes se recalculaba en cada render —cada tecla de la búsqueda recorría los
   // 1.331 discos comparando siete campos de texto—, ahora solo cuando cambia algo.
@@ -212,6 +234,8 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   let displayData = filtered;
   if (viewMode === "top10") displayData = filtered.slice(0, 10);
   else if (viewMode === "rarezas") displayData = filtered.filter((i) => i.isRare);
+
+  const mostrados = displayData.slice(0, visibles);
 
   const sectionTitle = () => {
     if (viewMode === "top10") return "Tus 10 más cotizados";
@@ -498,7 +522,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   // Mismo constructor que usa la sincronización de la URL, para que lo que se
   // envía a la ficha y lo que se recupera al volver no puedan divergir.
   const getReleaseUrl = (releaseId: string | number) => {
-    const qs = construirQuery(filters, sortBy, viewMode, activeTab).toString();
+    const qs = construirQuery(filters, sortBy, viewMode, activeTab, visibles).toString();
     return `/release/${releaseId}${qs ? `?${qs}` : ""}`;
   };
 
@@ -593,10 +617,25 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           </div>
 
           <div className={styles.grid}>
-            {displayData.map((item) => (
+            {mostrados.map((item) => (
               <RecordCard key={item.release_id} item={item} href={getReleaseUrl(item.release_id)} />
             ))}
           </div>
+
+          {mostrados.length < displayData.length && (
+            <div className={styles.verMas}>
+              <button
+                type="button"
+                className={styles.verMasBtn}
+                onClick={verMas}
+              >
+                Ver más discos
+              </button>
+              <span className={styles.verMasCuenta}>
+                {mostrados.length} de {displayData.length}
+              </span>
+            </div>
+          )}
           </>
           )}
         </>

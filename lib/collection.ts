@@ -367,6 +367,24 @@ export function pestanaDesdeParams(sp: FuenteParams): PestanaDashboard {
   return validos.includes(v as PestanaDashboard) ? (v as PestanaDashboard) : PESTANA_POR_DEFECTO;
 }
 
+/** Tarjetas por tanda en la cuadrícula de la Colección. */
+export const POR_PAGINA = 60;
+
+/**
+ * Cuántas tarjetas hay que pintar, según la URL.
+ *
+ * Va en la URL como todo lo demás para que volver de una ficha devuelva la
+ * cuadrícula del mismo tamaño: si no, la página es más corta que cuando se
+ * salió y el scroll restaurado cae al vacío.
+ */
+export function verDesdeParams(sp: FuenteParams): number {
+  const n = parseInt(leerParam(sp, "ver"), 10);
+  if (Number.isNaN(n) || n < POR_PAGINA) return POR_PAGINA;
+  // Redondeado a tandas, y con tope: ?ver=999999 pintaría la colección entera,
+  // que es justo lo que se quiere evitar.
+  return Math.min(Math.ceil(n / POR_PAGINA) * POR_PAGINA, POR_PAGINA * 40);
+}
+
 export function vistaDesdeParams(sp: FuenteParams): VistaColeccion {
   const v = leerParam(sp, "view");
   const validos: VistaColeccion[] = ["all", "top10", "rarezas"];
@@ -384,7 +402,8 @@ export function construirQuery(
   filtros: FiltrosColeccion,
   orden: OrdenColeccion,
   vista: VistaColeccion,
-  pestana: PestanaDashboard = PESTANA_POR_DEFECTO
+  pestana: PestanaDashboard = PESTANA_POR_DEFECTO,
+  ver: number = POR_PAGINA
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (filtros.search.trim()) params.set("search", filtros.search);
@@ -408,6 +427,7 @@ export function construirQuery(
   if (orden !== ORDEN_POR_DEFECTO) params.set("sort", orden);
   if (vista !== VISTA_POR_DEFECTO) params.set("view", vista);
   if (pestana !== PESTANA_POR_DEFECTO) params.set("tab", pestana);
+  if (ver > POR_PAGINA) params.set("ver", String(ver));
   return params;
 }
 
