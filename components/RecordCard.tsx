@@ -5,6 +5,7 @@ import styles from "@/app/dashboard.module.css";
 import { IconVinyl, IconArrowUp, IconArrowDown, IconMinus } from "@/components/icons";
 import { variacion, formatearDelta } from "@/lib/collection";
 import type { DiscoConPrecio } from "@/lib/types";
+import { euros } from "@/lib/formato";
 
 /**
  * La tarjeta de un disco en una cuadrícula.
@@ -16,9 +17,6 @@ import type { DiscoConPrecio } from "@/lib/types";
  * El destino lo decide quien la usa: la portada arrastra sus filtros en la URL
  * y las carpetas solo la sección, para que "Volver" funcione en cada caso.
  */
-
-const formatEuro = (val: number) =>
-  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
 
 /** "firme" -> "confFirme", que es como se llaman las clases del semáforo. */
 function claseNivel(nivel: string): string {
@@ -61,7 +59,7 @@ export default function RecordCard({ item, href }: { item: DiscoConPrecio; href:
               title={`${item.confidence.etiqueta} — ${item.confidence.motivo}`}
               aria-label={`Fiabilidad: ${item.confidence.etiqueta}. ${item.confidence.motivo}`}
             />
-            {formatEuro(item.price)}
+            {euros(item.price)}
           </span>
 
           {/* La variación, no el precio anterior: una flecha verde junto a
@@ -71,7 +69,7 @@ export default function RecordCard({ item, href }: { item: DiscoConPrecio; href:
             title={
               item.trend === "stable"
                 ? "Sin cambios desde la última actualización"
-                : `Antes ${formatEuro(item.prevPrice)}${v.etiquetaPorcentaje ? ` · ${v.etiquetaPorcentaje}` : ""}`
+                : `Antes ${euros(item.prevPrice)}${v.etiquetaPorcentaje ? ` · ${v.etiquetaPorcentaje}` : ""}`
             }
           >
             {item.trend === "up" && <IconArrowUp className={styles.trendIcon} />}

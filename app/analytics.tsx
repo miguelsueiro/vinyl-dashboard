@@ -13,6 +13,7 @@ import { IconStar, IconEuro, IconArrowUp, IconArrowDown } from "@/components/ico
 import type { FiltrosColeccion } from "@/lib/collection";
 import type { DiscoConPrecio, DiscoConRareza } from "@/lib/types";
 import { puntuacionRareza, explicarRareza } from "@/lib/rareza";
+import { euros, eurosRedondeados } from "@/lib/formato";
 
 // Los tramos son medio abiertos: un disco de 100 € está en "100-200€" y no en
 // "50-100€". El filtro, en cambio, incluye los dos extremos, así que al pinchar
@@ -38,9 +39,6 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
   verEnColeccion: (filtros: Partial<FiltrosColeccion>) => void;
 }) {
 
-  const formatEuro = (val: number) => 
-    new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(val);
-
   // 📈 DATA: Últimas Variaciones (solo los que han cambiado)
   const latestChanges = useMemo(() => {
     return (enriched || [])
@@ -49,9 +47,6 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
         return Math.abs(b.price - b.prevPrice) - Math.abs(a.price - a.prevPrice);
       });
   }, [enriched]);
-
-  const formatEuroPrecise = (val: number) => 
-    new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
 
   const histogramData = useMemo(() => TRAMOS.map((t) => ({
     ...t,
@@ -127,7 +122,7 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
                     return (
                       <div style={{ background: "#000", padding: "10px 15px", border: "1px solid #333", borderRadius: 8 }}>
                         <div style={{ fontWeight: "bold" }}>{d.artist} - {d.name}</div>
-                        <div style={{ color: "#1ED760" }}>{formatEuro(d.y)}</div>
+                        <div style={{ color: "#1ED760" }}>{eurosRedondeados(d.y)}</div>
                         <div style={{ fontSize: "11px", color: "#888" }}>{d.x} en venta actualmente</div>
                       </div>
                     );
@@ -148,7 +143,7 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
                   <span className={styles.rankIndex}>{i+1}</span>
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{r?.artist} - {r?.title}</div>
-                    <div className={styles.rankPrice}>{formatEuro(item.price)}</div>
+                    <div className={styles.rankPrice}>{eurosRedondeados(item.price)}</div>
                   </div>
                 </Link>
               );
@@ -183,7 +178,7 @@ export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
               <div className={styles.rankInfo}>
                 <div className={styles.rankName} style={{ fontSize: '14px' }}>{item.record?.artist} - {item.record?.title}</div>
                 <div className={styles.rankPrice} style={{ fontSize: '13px' }}>
-                  {formatEuroPrecise(item.prevPrice)} → <span style={{ color: item.trend === "up" ? '#1ED760' : '#ff4d4d', fontWeight: 'bold' }}>{formatEuroPrecise(item.price)}</span>
+                  {euros(item.prevPrice)} → <span style={{ color: item.trend === "up" ? '#1ED760' : '#ff4d4d', fontWeight: 'bold' }}>{euros(item.price)}</span>
                 </div>
               </div>
             </Link>

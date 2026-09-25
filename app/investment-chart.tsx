@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { Snapshot } from "@/lib/types";
+import { euros } from "@/lib/formato";
 
 export default function InvestmentChart({ snapshots }: { snapshots: Snapshot[] }) {
   const [range, setRange] = useState<"1M" | "1Y" | "ALL" | "CUSTOM">("1M");
@@ -57,13 +58,6 @@ export default function InvestmentChart({ snapshots }: { snapshots: Snapshot[] }
       value: Number(s.total_value.toFixed(2)),
     }));
   }, [snapshots, range, customStart, customEnd]);
-
-  const currencyFormatter = new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
   if (chartData.length === 0 && snapshots.length > 0) {
     return (
@@ -142,7 +136,7 @@ export default function InvestmentChart({ snapshots }: { snapshots: Snapshot[] }
           />
           <Tooltip 
             labelFormatter={(label, entries) => entries[0]?.payload?.fullDate}
-            formatter={(value) => [currencyFormatter.format(Number(value)), "Valor Total"]}
+            formatter={(value) => [euros(Number(value)), "Valor Total"]}
             contentStyle={{ borderRadius: 20, background: "rgba(10,10,10,0.95)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)' }}
           />
           <Area 

@@ -12,9 +12,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// El mismo nombre que la cabecera. Antes la pestaña del navegador decía
+// "Vinyl Intelligence" y la página "Record Collection": dos nombres para lo
+// mismo, y ninguno de los dos aparecía en el otro sitio.
 export const metadata: Metadata = {
-  title: "Miguel Sueiro | Vinyl Intelligence",
-  description: "Market intelligence and collection management for vinyl enthusiasts",
+  title: "Miguel Sueiro Record Collection",
+  description: "Colección de vinilos, con precios de mercado y valor estimado.",
 };
 
 import Link from "next/link";

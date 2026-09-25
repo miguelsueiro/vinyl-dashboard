@@ -21,6 +21,7 @@ import type {
   ReglasCarpeta,
 } from "@/lib/types";
 import type { Frescura } from "@/lib/fechas";
+import { euros } from "@/lib/formato";
 import {
   cumpleFiltros, ordenarColeccion, redondear, tokensUnicos,
   filtrosDesdeParams, ordenDesdeParams, vistaDesdeParams, pestanaDesdeParams,
@@ -243,7 +244,6 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
     return "Tus Joyas Analógicas";
   };
 
-  const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
   const filteredTotalValue = displayData.reduce((sum, item) => sum + item.price, 0);
   const clearFilters = () => {
     setSearch(""); setGenre(""); setStyleFilter(""); setYearMin(""); setYearMax(""); setPriceMin(""); setPriceMax(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
@@ -535,9 +535,9 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
           <div className={styles.kpiGrid}>
             <KPI
               label="Valor Total Colección"
-              value={formatEuro(totalValue)}
+              value={euros(totalValue)}
               subText={confidenceSummary.discos > 0
-                ? `${formatEuro(confidenceSummary.firme.valor)} sobre mercado contrastado`
+                ? `${euros(confidenceSummary.firme.valor)} sobre mercado contrastado`
                 : ""}
               footer={ultimaSync ? (
                 <span className={`${styles.syncStamp} ${ultimaSync.obsoleto ? styles.syncStale : ""}`}>
@@ -547,7 +547,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
                 </span>
               ) : undefined}
             />
-            <KPI label="Disco Más Caro" value={formatEuro(maxPrice)} subText={maxPriceItem ? `${maxPriceItem.record?.artist} - ${maxPriceItem.record?.title}` : ""} />
+            <KPI label="Disco Más Caro" value={euros(maxPrice)} subText={maxPriceItem ? `${maxPriceItem.record?.artist} - ${maxPriceItem.record?.title}` : ""} />
             <KPI label="Total Discos" value={`${records.length}`} />
           </div>
 
@@ -579,7 +579,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
 
           <h2 className={styles.sectionTitle}>
             <div className={styles.titleText}>{sectionTitle()} <span className={styles.recordCountBadge}>{displayData.length}</span></div>
-            <div className={styles.filteredValue}>Total selección: <span>{formatEuro(filteredTotalValue)}</span></div>
+            <div className={styles.filteredValue}>Total selección: <span>{euros(filteredTotalValue)}</span></div>
           </h2>
           {displayData.length === 0 ? (
             <div className={styles.emptyGrid}>

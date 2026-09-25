@@ -18,7 +18,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Alta] ~~Pestañas en `useState`: recargar/compartir/volver siempre lleva a Colección. → Pestaña en la URL (`?tab=` o rutas).~~ **Hecho**: falta pasar la carpeta concreta a la ficha.
 - [Media] ~~Tarjetas con `<a href>` en vez de `Link`: recarga completa + loader en cada ficha. → `Link`; loader solo en primera carga.~~ **Hecho**.
 - [Media] Cabecera fija con 40px de padding (~110px siempre ocupados). → Compactar al hacer scroll.
-- [Media] Nombres e idiomas mezclados (Record Collection / Vinyl Intelligence; Insights, Randomize, Smart Folders). → Un nombre y español: Colección, Carpetas, Análisis, Aleatorio.
+- [Media] ~~Nombres e idiomas mezclados (Record Collection / Vinyl Intelligence; Insights, Randomize, Smart Folders).~~ **Hecho** a medias por decisión: un solo nombre, Record Collection, y el encabezado de carpetas ya dice Carpetas como su pestaña. Insights y Randomize se quedan en inglés.
 - [Media] ~~Hamburguesa sin `aria-label`/`aria-expanded`, sin Escape ni gestión de foco.~~ **Hecho**.
 - [Baja] Restauración de scroll con una sola clave y escritura en cada evento de scroll. → Clave por pestaña, throttle.
 
@@ -41,7 +41,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Media] ~~Sin enlace de streaming, el formulario aparece abierto. → Botón "Añadir enlace".~~ **Hecho**.
 - [Media] ~~`posicion`/`total` calculados pero no mostrados; flechas sin `aria-label` ni atajos. → "12 de 340", teclas ← →.~~ **Hecho**.
 - [Media] Fallo de Discogs silencioso. → Aviso con reintento.
-- [Baja] Título de pestaña genérico. → `generateMetadata` "Artista – Título".
+- [Baja] ~~Título de pestaña genérico. → `generateMetadata` "Artista – Título".~~ **Hecho**: sale del catálogo cacheado, así que no añade ninguna consulta.
 - [Baja] Estilo no aparece como etiqueta; formatos no clicables.
 
 ### Insights (`app/analytics.tsx`)
@@ -51,6 +51,9 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Media] ~~Gráficos no navegables. → Clic → Colección filtrada.~~ **Hecho**: en estilos y en tramos de precio. El scatter, no.
 - [Baja] Scatter aplastado por extremos. → Escala log, clic → ficha.
 - [Baja] Variaciones sin fecha de sync ni límite.
+
+### Insights — hallazgo nuevo (25/09/2026)
+- [Media] Los tres gráficos no se pintan al entrar: quedan en blanco hasta que se hace scroll o se cambia el tamaño de la ventana. Es de `ResponsiveContainer`, que mide 0 en el primer render. Afecta también al histograma y al scatter, que no se han tocado.
 
 ### Randomize (`app/random-view.tsx`)
 - [Alta] ~~Muestra de 40 (15 en móvil) fijada al montar; "Probar de nuevo" nunca sale de ella. → Re-muestrear en cada tirada.~~ **Hecho**.
@@ -72,7 +75,7 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - Semáforo solo por color. → Forma/letra + leyenda. **A medias**: hay leyenda bajo el título, pero el punto se sigue distinguiendo solo por color.
 - ~~Sin `:focus-visible`. → Anillo de foco global.~~ **Hecho**.
 - Estados: ~~loader a pantalla completa en cada navegación~~; ~~vacíos solo en Carpetas/Variaciones~~; errores con `alert()`; ~~ninguna fecha de última sincronización visible~~. **A medias**: quedan los `alert()`.
-- Consistencia: ~~tarjeta duplicada (extraer `RecordCard`)~~, iconos mixtos, ~~colores hardcodeados (→ tokens en `:root`)~~, euros con 0/2 decimales, "discos/álbumes/unidades". **A medias**: quedan los iconos, los decimales y el vocabulario.
+- Consistencia: ~~tarjeta duplicada (extraer `RecordCard`)~~, iconos mixtos, ~~colores hardcodeados (→ tokens en `:root`)~~, ~~euros con 0/2 decimales~~, ~~"discos/álbumes/unidades"~~. **A medias**: quedan los iconos mixtos.
 - Responsive: títulos de 11px en grid móvil; `<datalist>` flojo en iOS; coverflow con setState por frame.
 - ~~Rendimiento: portada `force-dynamic` descarga todo en cada visita; cada ficha descarga toda la colección para anterior/siguiente.~~ **Hecho**: lectura única cacheada que comparten las dos páginas.
 
@@ -105,4 +108,4 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [x] Modelo de filtros único para Colección y Carpetas, con "Guardar como carpeta"
 - [x] Insights navegable; fusionar gráficos de estilos (scatter con escala log, pendiente)
 - [x] Carga paginada y catálogo cacheado; la ficha ya no relee la colección (virtualización y filtrado en servidor, pendientes)
-- [ ] Unificar idioma y nombre; valorar acento de color propio
+- [x] Unificar idioma y nombre (acento de color propio, pendiente)

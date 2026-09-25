@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 import styles from "@/app/dashboard.module.css";
 import { separarTokens } from "@/lib/collection";
+import { eurosRedondeados } from "@/lib/formato";
 import type { DiscoConPrecio } from "@/lib/types";
 
 /**
@@ -29,9 +30,6 @@ export interface FilaEstilo {
   valor: number;
 }
 
-const euros = (v: number) =>
-  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
-
 const Tooltipcito = ({ active, payload }: {
   active?: boolean;
   payload?: Array<{ payload: FilaEstilo }>;
@@ -42,7 +40,7 @@ const Tooltipcito = ({ active, payload }: {
     <div className={styles.chartTooltip}>
       <p className={styles.chartTooltipTitle}>{f.name}</p>
       <p className={styles.chartTooltipValue}>
-        {f.discos} {f.discos === 1 ? "disco" : "discos"} · {euros(f.valor)}
+        {f.discos} {f.discos === 1 ? "disco" : "discos"} · {eurosRedondeados(f.valor)}
       </p>
       <p className={styles.chartTooltipHint}>Pincha para verlos en la Colección</p>
     </div>
@@ -109,7 +107,7 @@ export default function StyleChart({
             <LabelList
               dataKey="valor"
               position="right"
-              formatter={(v: unknown) => euros(Number(v))}
+              formatter={(v: unknown) => eurosRedondeados(Number(v))}
               fill="var(--texto-secundario)"
               fontSize={11}
             />

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import styles from "./release.module.css";
@@ -9,6 +10,7 @@ import {
 } from "@/components/icons";
 import { getFiabilidad } from "@/lib/confidence";
 import { leerCatalogo } from "@/lib/datos";
+import { euros } from "@/lib/formato";
 import {
   vecinos, filtrosDesdeParams, ordenDesdeParams, calcularTendencia, redondear,
   variacion, formatearDelta,
@@ -16,6 +18,28 @@ import {
 import type {
   PrecioHistorico, ReleaseDiscogs, PistaDiscogs, CreditoDiscogs,
 } from "@/lib/types";
+
+/**
+ * El título de la pestaña. Todas las fichas se llamaban igual, así que con
+ * varias abiertas —que es lo normal comparando discos— no había forma de
+ * saber cuál era cuál.
+ *
+ * Sale del catálogo cacheado, el mismo que usa la página para las flechas:
+ * no añade ninguna consulta.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const { records } = await leerCatalogo();
+  const disco = records.find((r) => String(r.discogs_release_id) === String(id));
+
+  if (!disco) return { title: "Disco no encontrado — Miguel Sueiro Record Collection" };
+
+  const nombre = [disco.artist, disco.title].filter(Boolean).join(" – ");
+  return {
+    title: `${nombre} — Miguel Sueiro Record Collection`,
+    description: [disco.label, disco.year].filter(Boolean).join(", ") || undefined,
+  };
+}
 
 export default async function ReleasePage({ 
   params, 
@@ -119,7 +143,7 @@ export default async function ReleasePage({
   };
 
   const formatEuro = (val: number) => {
-    return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
+    return euros(val);
   };
 
   const getNavUrl = (newId: string | number) => {

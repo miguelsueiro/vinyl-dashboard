@@ -7,6 +7,7 @@ import { IconTrash, IconEdit, IconClose } from "@/components/icons";
 import styles from "./dashboard.module.css";
 import { cumpleFiltros, filtros, tokensUnicos, OPCIONES_FORMATO, OPCIONES_ESTADO } from "@/lib/collection";
 import type { Disco, DiscoConPrecio, ReglasCarpeta } from "@/lib/types";
+import { euros } from "@/lib/formato";
 
 interface SmartFolder {
   id: string;
@@ -221,7 +222,6 @@ export default function SmartFoldersView({
     }
   };
 
-  const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
 
   return (
     <div className={styles.foldersContainer}>
@@ -273,12 +273,12 @@ export default function SmartFoldersView({
             </div>
             <div className={styles.folderKPIs}>
               <div className={styles.folderKPICell}>
-                <div className={styles.kLabel}>Álbumes</div>
+                <div className={styles.kLabel}>Discos</div>
                 <div className={styles.kValue}>{activeFolder.itemCount}</div>
               </div>
               <div className={styles.folderKPICell}>
                 <div className={styles.kLabel}>Valor Estimado</div>
-                <div className={styles.kValue}>{formatEuro(activeFolder.totalValue)}</div>
+                <div className={styles.kValue}>{euros(activeFolder.totalValue)}</div>
               </div>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function SmartFoldersView({
             ))}
             {activeFolder.items.length === 0 && (
               <div className={styles.emptyFolderMessage}>
-                No hay álbumes en la colección que cumplan las reglas de esta carpeta.
+                No hay discos en la colección que cumplan las reglas de esta carpeta.
               </div>
             )}
           </div>
@@ -298,7 +298,7 @@ export default function SmartFoldersView({
         // GRID VIEW OF ALL SMART FOLDERS
         <div>
           <div className={styles.foldersGridHeader}>
-            <h2 className={styles.sectionTitle}>Smart Folders</h2>
+            <h2 className={styles.sectionTitle}>Carpetas</h2>
             <button className={styles.createFolderBtn} onClick={openCreateModal}>
                Nueva Carpeta
             </button>
@@ -313,7 +313,7 @@ export default function SmartFoldersView({
                   <div className={styles.folderCardStats}>
                     <span>{f.itemCount} discos</span>
                     <span className={styles.folderCardDot}>•</span>
-                    <span>{formatEuro(f.totalValue)}</span>
+                    <span>{euros(f.totalValue)}</span>
                   </div>
                 </div>
                 <div className={styles.folderCardActions}>
@@ -544,7 +544,7 @@ export default function SmartFoldersView({
                     <span className={styles.previewText}>
                       <strong>{vistaPrevia.discos}</strong> {vistaPrevia.discos === 1 ? "disco" : "discos"}
                       <span className={styles.previewDot}>·</span>
-                      <strong>{formatEuro(vistaPrevia.valor)}</strong>
+                      <strong>{euros(vistaPrevia.valor)}</strong>
                     </span>
                   )}
                 </div>
