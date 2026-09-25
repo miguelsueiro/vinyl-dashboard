@@ -4,24 +4,26 @@ import Link from "next/link";
 
 import { useMemo } from "react";
 import styles from "./dashboard.module.css";
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, ScatterChart, Scatter, ZAxis, Legend 
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ScatterChart, Scatter, ZAxis
 } from "recharts";
-import StyleChart from "./genre-chart";
+import StyleChart from "@/components/StyleChart";
 import { IconStar, IconEuro, IconArrowUp, IconArrowDown } from "@/components/icons";
-import { separarTokens } from "@/lib/collection";
-import type { Disco, DiscoConPrecio, DiscoConRareza } from "@/lib/types";
+import type { FiltrosColeccion } from "@/lib/collection";
+import type { DiscoConPrecio, DiscoConRareza } from "@/lib/types";
 import { puntuacionRareza, explicarRareza } from "@/lib/rareza";
 
 // `enriched` llega desde la portada con el disco y el precio ya cruzados. Antes
 // esta vista recibía además latestPrices y records sueltos y los volvía a cruzar
 // con records.find() dentro de un map: 1.331 × 1.331 comparaciones, tres veces.
-export default function AnalyticsView({ records, enriched, urlDisco }: {
-  records: Disco[];
+export default function AnalyticsView({ enriched, urlDisco, verEnColeccion }: {
   enriched: DiscoConPrecio[];
   /** La construye la portada para que al volver se conserve la sección. */
   urlDisco: (releaseId: string | number) => string;
+  /** Abre la Colección con esos filtros puestos. Los gráficos eran callejones
+      sin salida: enseñaban un dato y no había forma de ver qué discos eran. */
+  verEnColeccion: (filtros: Partial<FiltrosColeccion>) => void;
 }) {
 
   const formatEuro = (val: number) => 
@@ -39,32 +41,22 @@ export default function AnalyticsView({ records, enriched, urlDisco }: {
   const formatEuroPrecise = (val: number) => 
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(val);
 
-  const histogramData = useMemo(() => {
-    const bins = [
-      { name: "0-20€", min: 0, max: 20 },
-      { name: "20-50€", min: 20, max: 50 },
-      { name: "50-100€", min: 50, max: 100 },
-      { name: "100-200€", min: 100, max: 200 },
-      { name: "200€+", min: 200, max: 999999 },
-    ];
-    return bins.map((bin) => ({
-      ...bin,
-      count: enriched.filter((item) => item.price >= bin.min && item.price < bin.max).length
-    }));
-  }, [enriched]);
+  // Los tramos son medio abiertos: un disco de 100 € está en "100-200€" y no
+  // en "50-100€". El filtro, en cambio, incluye los dos extremos, así que al
+  // pinchar se pide hasta un céntimo menos. Si no, la barra decía 179 y la
+  // Colección devolvía 180.
+  const TRAMOS = [
+    { name: "0-20€", min: 0, hasta: 20 },
+    { name: "20-50€", min: 20, hasta: 50 },
+    { name: "50-100€", min: 50, hasta: 100 },
+    { name: "100-200€", min: 100, hasta: 200 },
+    { name: "200€+", min: 200, hasta: null },
+  ];
 
-  // 🥧 DATA: Peso por Estilo en Valor Total
-  const styleValueData = useMemo(() => {
-    const values: Record<string, number> = {};
-    enriched.forEach((item) => {
-      const style = separarTokens(item.record?.style)[0] || "Otros";
-      values[style] = (values[style] || 0) + item.price;
-    });
-    return Object.entries(values)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 7);
-  }, [enriched]);
+  const histogramData = useMemo(() => TRAMOS.map((t) => ({
+    ...t,
+    count: enriched.filter((item) => item.price >= t.min && (t.hasta === null || item.price < t.hasta)).length,
+  })), [enriched]);
 
   // 🧭 DATA: Scatter Plot (Precio vs Escasez/Stock)
   const scatterData = useMemo(() => {
@@ -90,12 +82,10 @@ export default function AnalyticsView({ records, enriched, urlDisco }: {
     [enriched]
   );
 
-  const COLORS = ["#1ED760", "#2ECC71", "#3498DB", "#9B59B6", "#E67E22", "#E74C3C", "#F1C40F"];
-
   return (
     <div className={styles.analyticsContainer}>
       <div className={styles.chartCardFull}>
-        <StyleChart records={records} />
+        <StyleChart enriched={enriched} onSelect={(estilo) => verEnColeccion({ style: estilo })} />
       </div>
 
       <div className={styles.chartsGrid}>
@@ -106,27 +96,25 @@ export default function AnalyticsView({ records, enriched, urlDisco }: {
               <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={12} />
               <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
               <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 12 }} />
-              <Bar dataKey="count" fill="#1ED760" radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="count"
+                fill="var(--acento)"
+                radius={[6, 6, 0, 0]}
+                className={styles.barraPinchable}
+                onClick={(bin: unknown) => {
+                  const t = bin as { min: number; hasta: number | null };
+                  // El último tramo no tiene techo: sin priceMax se lee "desde 200 €".
+                  verEnColeccion({
+                    priceMin: String(t.min),
+                    ...(t.hasta !== null && { priceMax: (t.hasta - 0.01).toFixed(2) }),
+                  });
+                }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className={styles.chartCard}>
-          <h3 className={styles.analyticTitle}>Peso de Estilos (€ Total)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={styleValueData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
-                {styleValueData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatEuro(Number(value))} />
-              <Legend verticalAlign="bottom" height={36}/>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={styles.chartCard}>
+        <div className={styles.chartCardFull}>
           <h3 className={styles.analyticTitle}>Relación Precio vs Stock</h3>
           <ResponsiveContainer width="100%" height={300}>
              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>

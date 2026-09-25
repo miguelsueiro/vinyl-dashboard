@@ -82,6 +82,10 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const [styleFilter, setStyleFilter] = useState(filtrosIniciales.style);
   const [yearMin, setYearMin] = useState(filtrosIniciales.yearMin);
   const [yearMax, setYearMax] = useState(filtrosIniciales.yearMax);
+  // Precio: sin control propio en la barra de filtros, se pone al pinchar un
+  // tramo del histograma de Insights y se quita desde su chip.
+  const [priceMin, setPriceMin] = useState(filtrosIniciales.priceMin);
+  const [priceMax, setPriceMax] = useState(filtrosIniciales.priceMax);
   const [labelFilter, setLabelFilter] = useState(filtrosIniciales.label);
   const [formatFilter, setFormatFilter] = useState(filtrosIniciales.format);
   const [conditionFilter, setConditionFilter] = useState(filtrosIniciales.condition);
@@ -132,8 +136,31 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   // aunque aquí no haya un control para cada cosa.
   const filters: FiltrosColeccion = useMemo(() => filtros({
     search, genre, style: styleFilter, label: labelFilter,
-    format: formatFilter, condition: conditionFilter, yearMin, yearMax,
-  }), [search, genre, styleFilter, labelFilter, formatFilter, conditionFilter, yearMin, yearMax]);
+    format: formatFilter, condition: conditionFilter, yearMin, yearMax, priceMin, priceMax,
+  }), [search, genre, styleFilter, labelFilter, formatFilter, conditionFilter, yearMin, yearMax, priceMin, priceMax]);
+
+  // Un gráfico de Insights que lleva a los discos que lo forman. Sustituye los
+  // filtros en lugar de sumarse a ellos: venir de otra sección y encontrarse
+  // el resultado recortado por algo que se dejó puesto antes despista más que
+  // ayuda.
+  const verEnColeccion = (parciales: Partial<FiltrosColeccion>) => {
+    const nuevos = filtros(parciales);
+    setSearch(nuevos.search);
+    setGenre(nuevos.genre);
+    setStyleFilter(nuevos.style);
+    setLabelFilter(nuevos.label);
+    setFormatFilter(nuevos.format);
+    setConditionFilter(nuevos.condition);
+    setYearMin(nuevos.yearMin);
+    setYearMax(nuevos.yearMax);
+    setPriceMin(nuevos.priceMin);
+    setPriceMax(nuevos.priceMax);
+    setViewMode("all");
+
+    const qs = construirQuery(nuevos, sortBy, "all", "collection").toString();
+    window.history.pushState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    window.scrollTo({ top: 0 });
+  };
 
   const cambiarPestana = (destino: PestanaDashboard) => {
     setIsMenuOpen(false);
@@ -153,7 +180,12 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   // con useSearchParams sin recargar la página.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const qs = construirQuery(filters, sortBy, viewMode, activeTab).toString();
+    // La sección se lee de la URL en el momento de ejecutarse, no de activeTab:
+    // al saltar de un gráfico de Insights a la Colección cambian la sección y
+    // los filtros a la vez, y en ese render activeTab todavía dice "analytics".
+    // Con el valor viejo, este efecto devolvía al usuario a Insights.
+    const pestanaActual = pestanaDesdeParams(new URLSearchParams(window.location.search));
+    const qs = construirQuery(filters, sortBy, viewMode, pestanaActual).toString();
     const destino = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
     if (destino !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(null, "", destino);
@@ -180,7 +212,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
   const formatEuro = (val: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
   const filteredTotalValue = displayData.reduce((sum, item) => sum + item.price, 0);
   const clearFilters = () => {
-    setSearch(""); setGenre(""); setStyleFilter(""); setYearMin(""); setYearMax(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
+    setSearch(""); setGenre(""); setStyleFilter(""); setYearMin(""); setYearMax(""); setPriceMin(""); setPriceMax(""); setLabelFilter(""); setFormatFilter("all"); setConditionFilter(""); setSortBy("priceDesc"); setViewMode("all");
   };
 
   const tabs = (
@@ -223,7 +255,15 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
       id: "year",
       etiqueta: "Año",
       valor: etiquetaRango(yearMin, yearMax),
-      quitar: () => { setYearMin(""); setYearMax(""); },
+      quitar: () => { setYearMin(""); setYearMax(""); setPriceMin(""); setPriceMax(""); },
+    });
+  }
+  if (priceMin || priceMax) {
+    chipsActivos.push({
+      id: "price",
+      etiqueta: "Precio",
+      valor: `${etiquetaRango(priceMin, priceMax)} €`,
+      quitar: () => { setPriceMin(""); setPriceMax(""); },
     });
   }
   if (labelFilter) chipsActivos.push({ id: "label", etiqueta: "Sello", valor: labelFilter, quitar: () => setLabelFilter("") });
@@ -495,7 +535,7 @@ function DashboardInner({ latestPrices, records, snapshots, initialSmartFolders,
       ) : activeTab === "folders" ? (
         <SmartFoldersView records={records} enriched={enriched} initialSmartFolders={initialSmartFolders} urlDisco={urlDiscoDeSeccion} />
       ) : activeTab === "analytics" ? (
-        <AnalyticsView records={records} enriched={enriched} urlDisco={urlDiscoDeSeccion} />
+        <AnalyticsView enriched={enriched} urlDisco={urlDiscoDeSeccion} verEnColeccion={verEnColeccion} />
       ) : (
         <RandomView records={records} />
       )}

@@ -45,8 +45,8 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 ### Insights (`app/analytics.tsx`)
 - [Media] "Rarezas" (≥40 € y 0 en venta) vs "Índice de Rareza" (precio/copias): dos definiciones. → Una.
 - [Media] "Score: 12.4" opaco. → "0 copias · 85 €" o escala 1–5.
-- [Media] Dos gráficos de estilos con denominadores distintos + donut de 7 colores. → Fusionar en barras horizontales.
-- [Media] Gráficos no navegables. → Clic → Colección filtrada.
+- [Media] ~~Dos gráficos de estilos con denominadores distintos + donut de 7 colores.~~ → Fusionar en barras horizontales. **Hecho**; además contaban solo el primer estilo de cada disco y 890 de 1.330 tienen varios.
+- [Media] ~~Gráficos no navegables.~~ → Clic → Colección filtrada. **Hecho** en estilos y tramos de precio.
 - [Baja] Scatter aplastado por extremos. → Escala log, clic → ficha.
 - [Baja] Variaciones sin fecha de sync ni límite.
 
@@ -101,6 +101,6 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 ### Fase 3 — Estructural
 - [x] Tokens de color y `RecordCard` (FilterBar, Modal, Toast, EmptyState: pendientes)
 - [x] Modelo de filtros único para Colección y Carpetas ("Guardar como carpeta", pendiente)
-- [ ] Insights navegable; fusionar gráficos de estilos
+- [x] Insights navegable; fusionar gráficos de estilos (scatter con escala log, pendiente)
 - [ ] Carga paginada / en servidor; navegación sin descargar toda la colección
 - [ ] Unificar idioma y nombre; valorar acento de color propio

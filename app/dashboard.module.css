@@ -453,6 +453,44 @@
 /* ANALYTICS STYLES RESTORED */
 .analyticsContainer { padding-top: 0; }
 .chartsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+/* Tooltips de los gráficos. Estaban escritos con `style` dentro de cada
+   gráfico, cada uno con su negro y su borde. */
+.chartTooltip {
+  background: rgba(0, 0, 0, 0.92);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.chartTooltipTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.chartTooltipValue {
+  margin: 2px 0 0;
+  color: var(--acento);
+  font-size: 13px;
+}
+
+.chartTooltipHint {
+  margin: 6px 0 0;
+  color: var(--texto-decorativo);
+  font-size: 11px;
+}
+
+.chartNota {
+  margin: 12px 0 0;
+  color: var(--texto-decorativo);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.barraPinchable {
+  cursor: pointer;
+}
+
 .chartCardFull { grid-column: 1 / -1; background: var(--superficie-tenue); border: 1px solid var(--superficie-alta); padding: 32px; border-radius: 24px; margin-bottom: 32px; }
 .chartCard { background: var(--superficie-tenue); border: 1px solid var(--superficie-alta); padding: 32px; border-radius: 24px; }
 .analyticTitle {
