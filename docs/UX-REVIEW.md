@@ -52,9 +52,6 @@ Revisión hecha sobre el código (no con usuarios). Severidad: **Alta** rompe un
 - [Baja] Scatter aplastado por extremos. → Escala log, clic → ficha.
 - [Baja] Variaciones sin fecha de sync ni límite.
 
-### Insights — hallazgo nuevo (25/09/2026)
-- [Media] Los tres gráficos no se pintan al entrar: quedan en blanco hasta que se hace scroll o se cambia el tamaño de la ventana. Es de `ResponsiveContainer`, que mide 0 en el primer render. Afecta también al histograma y al scatter, que no se han tocado.
-
 ### Randomize (`app/random-view.tsx`)
 - [Alta] ~~Muestra de 40 (15 en móvil) fijada al montar; "Probar de nuevo" nunca sale de ella. → Re-muestrear en cada tirada.~~ **Hecho**.
 - [Media] ~~Gira solo al entrar (3s), ignora `prefers-reduced-motion`.~~ **Hecho**.
